@@ -1,0 +1,118 @@
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background-color: #f5f5f5;
+}
+.chat-container {
+  width: 100%;
+  max-width: 600px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  background-color: white;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+.messages {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+.message-container {
+  display: flex;
+  align-items: left;
+  flex-direction: column; /* Stack items vertically */
+  margin: 8px 0;
+}
+.message {
+  padding: 10px;
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+.user-message {
+  background-color: #106258;
+  color: white;
+  margin-left: auto;
+  margin-right: 8px;
+}
+.ai-message {
+  background-color: #e9ecef;
+  color: black;
+  margin-right: auto;
+}
+.input-container {
+  display: flex;
+}
+#inputBox {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+#sendButton {
+  padding: 10px 20px;
+  background-color: #106258;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#sendButton:hover {
+  background-color: #106258;
+}
+.edit-button {
+  background-color: transparent;
+  border: none;
+  color: #106258;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 5px;
+}
+.edit-button:hover {
+  color: #399489;
+}
+.editable-input {
+  padding: 8px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* Container for code blocks */
+.code-block {
+  margin: 5px 0; /* Minimal margin between code blocks */
+  padding: 0; /* Remove padding from the container */
+  background-color: #f5f5f5;
+  border-radius: 5px;
+}
+
+/* Code block styling within the pre tag */
+.code-block pre {
+  padding: 6px; /* Small padding inside the code for readability */
+  margin: 0; /* Remove margin from the pre tag */
+  background-color: #f5f5f5;
+  border-radius: 5px;
+  overflow-x: auto;
+}
+
+/* Styling for code */
+.code-block pre code {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  color: #333;
+  white-space: pre-wrap; /* Wrap text to avoid horizontal scrolling */
+  word-break: break-word; /* Break long words to avoid overflow */
+}
+
+/* Minimal margin for text block to reduce spacing between text and code blocks */
+.text-block {
+  margin: 5px 0;
+}
