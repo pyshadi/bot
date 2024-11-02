@@ -16,6 +16,8 @@
   <body>
     <div class="chat-container">
       <h1>Chat with llama3</h1>
+      <!-- Save Chat Button -->
+      <button id="saveButton" onclick="saveChat()">Save Chat</button>
       <div class="messages" id="messages"></div>
       <div class="input-container">
         <input
@@ -224,6 +226,47 @@
           messagesList.removeChild(currentMessage);
           currentMessage = nextMessage;
         }
+      }
+      function saveChat() {
+        const messagesContainer = document.getElementById("messages");
+        let chatContent = "";
+
+        // Loop through all .message-container elements in order
+        messagesContainer
+          .querySelectorAll(".message-container")
+          .forEach((container, index) => {
+            let messageText = "";
+
+            if (index % 2 === 0) {
+              // User message
+              const userMessageElement =
+                container.querySelector(".user-message");
+              if (userMessageElement) {
+                messageText = userMessageElement.textContent.trim();
+              } else {
+                messageText = container.textContent.trim(); // Fallback
+              }
+              chatContent += "User: " + messageText + "\n";
+            } else {
+              // AI message
+              messageText = container.textContent.trim();
+              chatContent += "AI: " + messageText + "\n";
+            }
+          });
+
+        console.log("Generated Chat Content:\n", chatContent); // Log to verify captured content
+
+        // Create a Blob with the chat content and trigger download
+        const blob = new Blob([chatContent], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "chat.txt";
+        link.click();
+
+        // Clean up URL object
+        URL.revokeObjectURL(url);
       }
     </script>
   </body>

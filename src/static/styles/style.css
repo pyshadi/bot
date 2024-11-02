@@ -57,14 +57,22 @@ body {
 }
 #sendButton {
   padding: 10px 20px;
-  background-color: #106258;
+  background-color: #000000;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
 #sendButton:hover {
-  background-color: #106258;
+  background-color: #1f1f1f;
+}
+#saveButton {
+  padding: 10px 20px;
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 .edit-button {
   background-color: transparent;
