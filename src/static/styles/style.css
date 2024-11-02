@@ -3,6 +3,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column; /* Stack the chat container and input below */
   height: 100vh;
   margin: 0;
   background-color: #f5f5f5;
@@ -46,8 +47,20 @@ body {
   color: black;
   margin-right: auto;
 }
+/* New wrapper for input-container */
+.input-wrapper {
+  width: 100%;
+  max-width: 800px;
+  padding: 10px;
+  background-color: white;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  max-width: 97%; /* Slightly smaller than the wrapper to fit nicely */
+}
 .input-container {
   display: flex;
+  align-items: center;
+  width: 100%;
 }
 #inputBox {
   flex-grow: 1;
