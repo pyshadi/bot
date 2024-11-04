@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Initialize the FastAPI app
 app = FastAPI()
-client = AsyncClient(host="http://127.0.0.1:11434")  # Ensure this is the correct URL for your LLaMA model server
+client = AsyncClient(host="http://127.0.0.1:11434")  # your LLaMA model server
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class ChatRequest(BaseModel):
@@ -23,7 +23,7 @@ class ChatResponse(BaseModel):
     response: str
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust according to your needs
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
