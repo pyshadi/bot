@@ -1,11 +1,9 @@
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
-from typing import Optional
 from ollama._client import AsyncClient
 from ollama._types import Message
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-import traceback
 from fastapi.middleware.cors import CORSMiddleware
 
 
