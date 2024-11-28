@@ -35,12 +35,13 @@ function sendMessage() {
     fetchAIResponse(user_input, aiMessageElement);
     editingMessageElement = null;
   } else {
-    const userMessageContainer = displayMessage(user_input, "user-message", true);
+    displayMessage(user_input, "user-message", true); // Directly display the user message
     const aiMessageElement = displayMessage("...", "ai-message");
     fetchAIResponse(user_input, aiMessageElement);
   }
   input.value = "";
 }
+
 
 document.getElementById("inputBox").addEventListener("keypress", function (event) {
   if (event.key === "Enter") {
