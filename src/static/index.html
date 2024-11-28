@@ -1,35 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Chat Application</title>
-    <!-- Prism.js CSS and JavaScript for syntax highlighting -->
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="static/styles/style.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat Application</title>
+  <!-- Prism.js CSS and JavaScript for syntax highlighting -->
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="static/styles/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
 
-  <body>
-    <div class="chat-container">
-      <h1>Chat with llama3.1</h1>
-      <!-- Save and clear chat buttons -->
-      <button id="saveButton">Save Chat</button>
-      <button id="clearButton">Clear Chat</button>
-      <div class="messages" id="messages"></div>
-      <!-- Input container -->
-      <div class="input-wrapper">
-        <div class="input-container">
-          <input type="text" id="inputBox" placeholder="Type your message here..." />
-          <button id="sendButton">Send</button>
-        </div>
+<body>
+  <div class="chat-container">
+    <h1>Chat with llama3.1</h1>
+    <!-- Save and clear chat buttons -->
+    <button id="saveButton">Save Chat</button>
+    <button id="clearButton">Clear Chat</button>
+    <div class="messages" id="messages"></div>
+
+    <!-- Input container -->
+    <div class="input-wrapper">
+      <div class="input-container">
+        <textarea id="inputBox" rows="2" placeholder="Type your message here..."></textarea>
+        <button id="sendButton">Send</button>
       </div>
     </div>
-    <script src="static/js/script.js"></script>
-  </body>
+  </div>
+  <script src="static/js/script.js"></script>
+</body>
 </html>

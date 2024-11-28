@@ -29,29 +29,32 @@ class ChatApp {
   initEventListeners() {
     const inputBox = document.getElementById(this.inputBoxId);
     if (inputBox) {
-      inputBox.addEventListener("keypress", (event) => {
-        if (event.key === "Enter") {
+      inputBox.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault(); // Prevents the default newline insertion
           this.sendMessage();
         }
       });
     }
-        // Add event listener for the Send button
-        const sendButton = document.getElementById("sendButton");
-        if (sendButton) {
-          sendButton.addEventListener("click", () => this.sendMessage());
-        }
-    
-        // Add event listeners for Save and Clear buttons
-        const saveButton = document.getElementById("saveButton");
-        if (saveButton) {
-          saveButton.addEventListener("click", () => this.saveChat());
-        }
-    
-        const clearButton = document.getElementById("clearButton");
-        if (clearButton) {
-          clearButton.addEventListener("click", () => this.clearChat());
-        }
+  
+    // Add event listener for the Send button
+    const sendButton = document.getElementById("sendButton");
+    if (sendButton) {
+      sendButton.addEventListener("click", () => this.sendMessage());
+    }
+  
+    // Add event listeners for Save and Clear buttons
+    const saveButton = document.getElementById("saveButton");
+    if (saveButton) {
+      saveButton.addEventListener("click", () => this.saveChat());
+    }
+  
+    const clearButton = document.getElementById("clearButton");
+    if (clearButton) {
+      clearButton.addEventListener("click", () => this.clearChat());
+    }
   }
+  
 
   sendMessage() {
     const input = document.getElementById(this.inputBoxId);
@@ -107,7 +110,7 @@ class ChatApp {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model: this.model, user_input: user_input }),
+      body: JSON.stringify({ model: this.model, user_input: user_input.trim() }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -158,101 +161,111 @@ class ChatApp {
 
   displayMessage(content, className, isUser = false) {
     const messagesList = document.getElementById(this.messagesContainerId);
-
+  
     const messageContainer = document.createElement("div");
     messageContainer.className = "message-container";
-
+  
     if (isUser) {
       const userContainer = document.createElement("div");
       userContainer.className = "user-message-container";
-
+  
       const message = document.createElement("div");
       message.className = `message user-message`;
-      message.textContent = content;
-
+      message.innerHTML = md.render(content); // Render Markdown
+  
       const editButton = document.createElement("button");
       editButton.className = "edit-button";
       editButton.textContent = "Edit";
       editButton.onclick = () => this.enableEditing(messageContainer);
-
+  
       userContainer.appendChild(editButton);
       userContainer.appendChild(message);
-
+  
       messageContainer.appendChild(userContainer);
     } else {
+      const aiContainer = document.createElement("div");
+      aiContainer.className = "ai-message-container";
+  
       const message = document.createElement("div");
-      message.className = `message ${className}`;
+      message.className = `message ai-message`;
       message.innerHTML = md.render(content); // Render Markdown
-      messageContainer.appendChild(message);
+  
+      aiContainer.appendChild(message);
+  
+      messageContainer.appendChild(aiContainer);
     }
-
+  
     messagesList.appendChild(messageContainer);
     messagesList.scrollTop = messagesList.scrollHeight;
-
+  
     return messageContainer;
   }
+  
+  
 
   enableEditing(messageContainer) {
     this.editingMessageElement = messageContainer;
     const messageContent = messageContainer.querySelector(".user-message");
     const currentText = messageContent.textContent;
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = currentText;
-    input.className = "editable-input";
-    input.onblur = () => this.saveEdit(input);
-    input.onkeypress = (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault(); // prevent the default form submission behavior
-        this.saveEdit(input); // Trigger saveEdit explicitly
+  
+    const textarea = document.createElement("textarea");
+    textarea.value = currentText;
+    textarea.className = "editable-textarea";
+    textarea.rows = currentText.split('\n').length || 1; // Adjust rows based on content
+  
+    textarea.onkeydown = (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault(); // Prevent adding a new line
+        this.saveEdit(textarea);
       }
     };
-
-    messageContent.replaceWith(input);
-    input.focus();
+    textarea.onblur = () => this.saveEdit(textarea);
+  
+    messageContent.replaceWith(textarea);
+    textarea.focus();
   }
+  
 
-  saveEdit(inputElement) {
-    clearTimeout(this.saveEditTimeout); // clear pending executions
-
+  saveEdit(textareaElement) {
+    clearTimeout(this.saveEditTimeout); // Clear pending executions
+  
     this.saveEditTimeout = setTimeout(() => {
-      const newText = inputElement.value.trim();
-
+      const newText = textareaElement.value.replace(/^\s+|\s+$/g, ""); // Trim extra whitespace and newlines
+  
       if (newText && this.editingMessageElement) {
-        if (!inputElement.parentNode) {
-          console.warn("Input element is no longer part of the DOM.");
+        if (!textareaElement.parentNode) {
+          console.warn("Textarea element is no longer part of the DOM.");
           this.editingMessageElement = null; // Reset editing state
           return;
         }
-
+  
         const messageContent = document.createElement("div");
         messageContent.className = "message user-message";
-        messageContent.textContent = newText;
-
+        messageContent.innerHTML = md.render(newText); // Render Markdown
+  
         try {
-          inputElement.parentNode.replaceChild(messageContent, inputElement);
+          textareaElement.parentNode.replaceChild(messageContent, textareaElement);
         } catch (error) {
-          console.error("Error replacing input:", error);
+          console.error("Error replacing textarea:", error);
           return;
         }
-
+  
         this.removeSubsequentMessages(this.editingMessageElement);
-
+  
         let aiMessage = this.editingMessageElement.nextElementSibling;
-        if (
-          !aiMessage ||
-          !aiMessage.classList.contains("ai-message")
-        ) {
+        if (!aiMessage || !aiMessage.querySelector('.ai-message')) {
           aiMessage = this.displayMessage("...", "ai-message");
         }
-
+  
         this.fetchAIResponse(newText, aiMessage);
       }
-
+  
       this.editingMessageElement = null; // Clear editing reference
     }, 10); // Delay 10ms to avoid DOM conflicts
   }
+  
+
+  
 
   updateUserMessage(newText) {
     const inputElement =
