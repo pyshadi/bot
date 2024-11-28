@@ -1,3 +1,10 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
   font-family: Arial, sans-serif;
   display: flex;
@@ -14,25 +21,67 @@ body {
   max-width: 800px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  padding: 10px;
   background-color: white;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+/* Header section */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+  background-color: #ffffff;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.button-group button {
+  padding: 8px 12px;
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.button-group button:hover {
+  background-color: #1f1f1f;
+}
+
+/* Messages section */
 .messages {
-  max-height: 400px;
-  overflow-y: auto;
-  margin-bottom: 10px;
+  flex-grow: 1;
   padding: 10px;
+  overflow-y: auto;
+  max-height: 400px;
+  min-height: 100px; /* Prevent collapse */
+  background-color: #f9f9f9;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
 }
 
+/* Message styling */
 .user-message-container,
 .ai-message-container {
   display: flex;
-  justify-content: flex-start;
-  margin: 0;
+  margin: 10px 0;
 }
+
 .user-message-container {
   justify-content: flex-end;
 }
@@ -44,31 +93,27 @@ body {
 .message {
   padding: 10px;
   border-radius: 8px;
-  max-width: 100%;
-  white-space: pre-wrap; /* Preserve whitespace and line breaks */
-  margin: 0;
+  max-width: 75%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .user-message {
-  background-color: #106258;
+  background-color: #375f5a;
   color: white;
-  margin-right: 8px;
 }
 
 .ai-message {
   background-color: #e9ecef;
   color: black;
-  margin-left: 8px;
 }
 
+/* Input section */
 .input-wrapper {
-  width: 100%;
-  max-width: 800px;
-  padding: 10px;
-  background-color: white;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   display: flex;
-  max-width: 97%; /* To fit */
+  padding: 10px 20px;
+  background-color: white;
+  border-top: 1px solid #ddd;
 }
 
 .input-container {
@@ -82,53 +127,25 @@ body {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  margin-right: 8px;
+  margin-right: 10px;
   resize: vertical;
   min-height: 40px;
   max-height: 200px;
-  overflow-y: auto; /* Scroll after max height */
+  overflow-y: auto;
+  font-size: 14px;
 }
+
 #sendButton {
-  padding: 10px 10px;
+  padding: 10px 15px;
   background-color: #000000;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 14px;
 }
 
 #sendButton:hover {
-  background-color: #1f1f1f;
-}
-#saveButton {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 5px 10px;
-  background-color: #000000;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-#saveButton:hover {
-  background-color: #1f1f1f;
-}
-
-#clearButton {
-  position: absolute;
-  top: 10px;
-  right: 100px;
-  padding: 5px 10px;
-  background-color: #000000;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-#clearButton:hover {
   background-color: #1f1f1f;
 }
 
@@ -155,30 +172,6 @@ body {
   border-radius: 4px;
   resize: vertical;
   margin-right: 8px;
-}
-
-.code-block {
-  margin: 5px 0;
-  padding: 0;
-  background-color: #f5f5f5;
-  border-radius: 5px;
-}
-
-/* code within the pre tag */
-.code-block pre {
-  padding: 6px;
-  margin: 0;
-  background-color: #f5f5f5;
-  border-radius: 5px;
-  overflow-x: auto;
-}
-
-.code-block pre code {
-  font-family: "Courier New", Courier, monospace;
-  font-size: 14px;
-  color: #333;
-  white-space: pre-wrap; /* avoid horizontal scrolling */
-  word-break: break-word;
 }
 
 .text-block {
