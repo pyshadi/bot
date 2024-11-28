@@ -81,7 +81,7 @@ class ChatApp {
   }
 
   extractMermaidDiagramsAndText(response) {
-    const mermaidCodeRegex = /(?:```mermaid\n([\s\S]*?)```|(?:^|\n)(sequenceDiagram|graph\s+\w+)[\s\S]*?(?=\n\S|\n$))/g;
+    const mermaidCodeRegex = /(?:```mermaid\n([\s\S]*?)```|(?:^|\n)(flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|mindmap|timeline|zenuml)[\s\S]*?(?=\n\S|\n$))/g;
     let match;
     const diagrams = [];
     let remainingText = response;
