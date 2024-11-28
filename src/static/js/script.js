@@ -1,4 +1,16 @@
-let editingMessageElement = null; // track element being edited
+// initialize markdown-it
+const md = window.markdownit({
+  highlight: function (str, lang) {
+    if (lang && Prism.languages[lang]) {
+      try {
+        return Prism.highlight(str, Prism.languages[lang], lang);
+      } catch (__) {}
+    }
+    return ''; // default escaping
+  },
+});
+
+let editingMessageElement = null; // Track element being edited
 
 function sendMessage() {
   const input = document.getElementById("inputBox");
@@ -44,53 +56,14 @@ function fetchAIResponse(user_input, aiMessageElement) {
     .then((response) => response.json())
     .then((data) => {
       aiMessageElement.innerHTML = ""; // clear previous content
-      formatResponse(data.response).forEach((element) => {
-        aiMessageElement.appendChild(element);
-      });
+      const parsedContent = md.render(data.response); // parse with markdown-it
+      aiMessageElement.innerHTML = parsedContent;
       Prism.highlightAll(); // Apply syntax highlighting
     })
     .catch((error) => {
       console.error("Error:", error);
       aiMessageElement.textContent = "There was an error processing your request.";
     });
-}
-
-function formatResponse(response) {
-  const codeBlockRegex = /```([\s\S]*?)```/g;
-  const parts = response.split(codeBlockRegex);
-  const elements = [];
-
-  parts.forEach((part, index) => {
-    const wrapper = document.createElement("div");
-    wrapper.style.display = "block"; // Ensure each part is on its own line
-
-    if (index % 2 === 0) {
-      // Text section
-      wrapper.textContent = part;
-      wrapper.className = "text-block";
-    } else {
-      // Code section
-      const codeContainer = document.createElement("pre");
-      const codeElement = document.createElement("code");
-      codeElement.className = "language-python";
-      codeElement.innerHTML = escapeHTML(part);
-      codeContainer.appendChild(codeElement);
-      wrapper.appendChild(codeContainer);
-      wrapper.className = "code-block";
-    }
-    elements.push(wrapper);
-  });
-
-  return elements;
-}
-
-function escapeHTML(str) {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 function displayMessage(content, className, isUser = false) {
@@ -119,9 +92,7 @@ function displayMessage(content, className, isUser = false) {
   } else {
     const message = document.createElement("div");
     message.className = `message ${className}`;
-    formatResponse(content).forEach((element) => {
-      message.appendChild(element);
-    });
+    message.innerHTML = md.render(content); // render Markdown
     messageContainer.appendChild(message);
   }
 
@@ -192,29 +163,19 @@ function saveChat() {
   const messagesContainer = document.getElementById("messages");
   let chatContent = "";
 
-  // Loop through all .message-container elements in order
   messagesContainer.querySelectorAll(".message-container").forEach((container, index) => {
     let messageText = "";
 
     if (index % 2 === 0) {
-      // User message
       const userMessageElement = container.querySelector(".user-message");
-      if (userMessageElement) {
-        messageText = userMessageElement.textContent.trim();
-      } else {
-        messageText = container.textContent.trim(); // Fallback
-      }
+      messageText = userMessageElement ? userMessageElement.textContent.trim() : container.textContent.trim();
       chatContent += "User: " + messageText + "\n";
     } else {
-      // AI message
       messageText = container.textContent.trim();
       chatContent += "AI: " + messageText + "\n";
     }
   });
 
-  console.log("Generated Chat Content:\n", chatContent); // Log to verify captured content
-
-  // Create a Blob with the chat content and trigger download
   const blob = new Blob([chatContent], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
 
@@ -223,11 +184,10 @@ function saveChat() {
   link.download = "chat.txt";
   link.click();
 
-  // Clean up URL object
   URL.revokeObjectURL(url);
 }
 
 function clearChat() {
-    const messagesContainer = document.getElementById("messages");
-    messagesContainer.innerHTML = ""; // Clear all messages
-  }
+  const messagesContainer = document.getElementById("messages");
+  messagesContainer.innerHTML = ""; // Clear all messages
+}
