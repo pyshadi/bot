@@ -11,6 +11,7 @@ const md = window.markdownit({
 });
 
 let editingMessageElement = null; // Track element being edited
+let saveEditTimeout; // variable for debouncing
 
 function sendMessage() {
   const input = document.getElementById("inputBox");
@@ -113,29 +114,53 @@ function enableEditing(messageContainer) {
   input.className = "editable-input";
   input.onblur = () => saveEdit(input);
   input.onkeypress = (e) => {
-    if (e.key === "Enter") saveEdit(input);
+    if (e.key === "Enter") {
+      e.preventDefault(); // prevent default form submission behavior
+      saveEdit(input); // trigger saveEdit explicitly
+    }
   };
+  
 
   messageContent.replaceWith(input);
   input.focus();
 }
 
 function saveEdit(inputElement) {
-  const newText = inputElement.value.trim();
+  clearTimeout(saveEditTimeout); // clear pending executions
 
-  if (newText && editingMessageElement) {
-    updateUserMessage(newText);
-    removeSubsequentMessages(editingMessageElement);
+  saveEditTimeout = setTimeout(() => {
+    const newText = inputElement.value.trim();
 
-    let aiMessage = editingMessageElement.nextElementSibling;
-    if (!aiMessage || !aiMessage.classList.contains("ai-message")) {
-      aiMessage = displayMessage("...", "ai-message");
+    if (newText && editingMessageElement) {
+      if (!inputElement.parentNode) {
+        console.warn("Input element is no longer part of the DOM.");
+        editingMessageElement = null; // reset editing state
+        return;
+      }
+
+      const messageContent = document.createElement("div");
+      messageContent.className = "message user-message";
+      messageContent.textContent = newText;
+
+      try {
+        inputElement.parentNode.replaceChild(messageContent, inputElement);
+      } catch (error) {
+        console.error("Error replacing input:", error);
+        return;
+      }
+
+      removeSubsequentMessages(editingMessageElement);
+
+      let aiMessage = editingMessageElement.nextElementSibling;
+      if (!aiMessage || !aiMessage.classList.contains("ai-message")) {
+        aiMessage = displayMessage("...", "ai-message");
+      }
+
+      fetchAIResponse(newText, aiMessage);
     }
 
-    fetchAIResponse(newText, aiMessage);
-  }
-
-  editingMessageElement = null;
+    editingMessageElement = null; // Clear editing reference
+  }, 10); // delay 10ms to avoid DOM conflicts
 }
 
 function updateUserMessage(newText) {
@@ -189,5 +214,5 @@ function saveChat() {
 
 function clearChat() {
   const messagesContainer = document.getElementById("messages");
-  messagesContainer.innerHTML = ""; // Clear all messages
+  messagesContainer.innerHTML = ""; // clear all messages
 }
