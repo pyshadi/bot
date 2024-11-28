@@ -3,7 +3,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-direction: column; /* Stack the chat container and input below */
+  flex-direction: column;
   height: 100vh;
   margin: 0;
   background-color: #f5f5f5;
@@ -16,7 +16,7 @@ body {
   padding: 10px;
   background-color: white;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-  position: relative; /* Ensure absolute positioning works within this container */
+  position: relative;
 }
 .messages {
   max-height: 400px;
@@ -27,7 +27,7 @@ body {
 .message-container {
   display: flex;
   align-items: left;
-  flex-direction: column; /* Stack items vertically */
+  flex-direction: column; /* stack vertically */
   margin: 8px 0;
 }
 .message {
@@ -47,7 +47,7 @@ body {
   color: black;
   margin-right: auto;
 }
-/* New wrapper for input-container */
+/* for input-container */
 .input-wrapper {
   width: 100%;
   max-width: 800px;
@@ -55,7 +55,7 @@ body {
   background-color: white;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   display: flex;
-  max-width: 97%; /* Slightly smaller than the wrapper to fit nicely */
+  max-width: 97%; /* to fit */
 }
 .input-container {
   display: flex;
@@ -81,9 +81,9 @@ body {
   background-color: #1f1f1f;
 }
 #saveButton {
-  position: absolute; /* Position it absolutely within the chat container */
-  top: 10px; /* Adjust distance from the top */
-  right: 10px; /* Adjust distance from the right */
+  position: absolute;
+  top: 10px;
+  right: 10px;
   padding: 5px 10px;
   background-color: #000000;
   color: white;
@@ -93,6 +93,22 @@ body {
 }
 
 #saveButton:hover {
+  background-color: #1f1f1f;
+}
+
+#clearButton {
+  position: absolute;
+  top: 10px;
+  right: 100px;
+  padding: 5px 10px;
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#clearButton:hover {
   background-color: #1f1f1f;
 }
 
@@ -116,33 +132,30 @@ body {
   border-radius: 4px;
 }
 
-/* Container for code blocks */
 .code-block {
-  margin: 5px 0; /* Minimal margin between code blocks */
-  padding: 0; /* Remove padding from the container */
+  margin: 5px 0;
+  padding: 0;
   background-color: #f5f5f5;
   border-radius: 5px;
 }
 
-/* Code block styling within the pre tag */
+/* code within the pre tag */
 .code-block pre {
-  padding: 6px; /* Small padding inside the code for readability */
-  margin: 0; /* Remove margin from the pre tag */
+  padding: 6px;
+  margin: 0;
   background-color: #f5f5f5;
   border-radius: 5px;
   overflow-x: auto;
 }
 
-/* Styling for code */
 .code-block pre code {
   font-family: "Courier New", Courier, monospace;
   font-size: 14px;
   color: #333;
-  white-space: pre-wrap; /* Wrap text to avoid horizontal scrolling */
-  word-break: break-word; /* Break long words to avoid overflow */
+  white-space: pre-wrap; /* avoid horizontal scrolling */
+  word-break: break-word;
 }
 
-/* Minimal margin for text block to reduce spacing between text and code blocks */
 .text-block {
   margin: 5px 0;
 }
