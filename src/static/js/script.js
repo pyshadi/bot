@@ -10,6 +10,8 @@ const md = window.markdownit({
   },
 });
 
+mermaid.initialize({ startOnLoad: false }); // prevent render on load
+
 let editingMessageElement = null; // Track element being edited
 let saveEditTimeout; // variable for debouncing
 
@@ -46,6 +48,27 @@ document.getElementById("inputBox").addEventListener("keypress", function (event
   }
 });
 
+function extractMermaidDiagramsAndText(response) {
+  const mermaidCodeRegex = /(?:```mermaid\n([\s\S]*?)```|(?:^|\n)(sequenceDiagram|graph\s+\w+)[\s\S]*?(?=\n\S|\n$))/g;
+  let match;
+  const diagrams = [];
+  let remainingText = response;
+
+  // extract Mermaid diagrams
+  while ((match = mermaidCodeRegex.exec(response)) !== null) {
+    const diagram = (match[1] || match[0]).trim(); // Get matched diagram code
+    diagrams.push(diagram);
+
+    // remove diagram from the remaining text
+    remainingText = remainingText.replace(match[0], "").trim();
+  }
+
+  console.log("Extracted diagrams:", diagrams);
+  console.log("Remaining text:", remainingText);
+
+  return { diagrams, remainingText };
+}
+
 function fetchAIResponse(user_input, aiMessageElement) {
   fetch("http://127.0.0.1:8000/chat/", {
     method: "POST",
@@ -57,12 +80,38 @@ function fetchAIResponse(user_input, aiMessageElement) {
     .then((response) => response.json())
     .then((data) => {
       aiMessageElement.innerHTML = ""; // clear previous content
-      const parsedContent = md.render(data.response); // parse with markdown-it
-      aiMessageElement.innerHTML = parsedContent;
+
+      const { diagrams, remainingText } = extractMermaidDiagramsAndText(data.response);
+
+      // text as Markdown
+      if (remainingText) {
+        const textContainer = document.createElement("div");
+        textContainer.className = "markdown-text";
+        textContainer.innerHTML = md.render(remainingText); // Render Markdown
+        aiMessageElement.appendChild(textContainer);
+      }
+
+      // mermaid diagram
+      diagrams.forEach((diagram, index) => {
+        const mermaidContainer = document.createElement("div");
+        mermaidContainer.className = "mermaid";
+        mermaidContainer.textContent = diagram;
+        aiMessageElement.appendChild(mermaidContainer);
+
+        try {
+          mermaid.init(undefined, mermaidContainer);
+        } catch (error) {
+          console.error(`Mermaid rendering failed for diagram ${index + 1}:`, error);
+          const errorElement = document.createElement("p");
+          errorElement.textContent = `Failed to render Mermaid diagram ${index + 1}. Check the syntax.`;
+          aiMessageElement.appendChild(errorElement);
+        }
+      });
+
       Prism.highlightAll(); // Apply syntax highlighting
     })
     .catch((error) => {
-      console.error("Error:", error);
+      console.error("Error fetching AI response:", error);
       aiMessageElement.textContent = "There was an error processing your request.";
     });
 }

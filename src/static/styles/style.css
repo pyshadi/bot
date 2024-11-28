@@ -159,3 +159,14 @@ body {
 .text-block {
   margin: 5px 0;
 }
+
+.mermaid {
+  margin: 20px 0;
+  font-size: 16px;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+}
