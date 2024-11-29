@@ -235,16 +235,13 @@ class ChatApp {
   saveEdit(textareaElement) {
     clearTimeout(this.saveEditTimeout); // Clear pending executions
   
+    // Prevent blur handler from triggering
+    textareaElement.onblur = null;
+  
     this.saveEditTimeout = setTimeout(() => {
-      const newText = textareaElement.value.replace(/^\s+|\s+$/g, ""); // Trim extra whitespace and newlines
+      const newText = textareaElement.value.trim(); // Trim whitespace
   
       if (newText && this.editingMessageElement) {
-        if (!textareaElement.parentNode) {
-          console.warn("Textarea element is no longer part of the DOM.");
-          this.editingMessageElement = null; // Reset editing state
-          return;
-        }
-  
         const messageContent = document.createElement("div");
         messageContent.className = "message user-message";
         messageContent.innerHTML = md.render(newText); // Render Markdown
@@ -267,8 +264,9 @@ class ChatApp {
       }
   
       this.editingMessageElement = null; // Clear editing reference
-    }, 10); // Delay 10ms to avoid DOM conflicts
+    }, 10); // Delay to avoid DOM conflicts
   }
+  
   
   updateUserMessage(newText) {
     const inputElement =
