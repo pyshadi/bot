@@ -55,7 +55,6 @@ class ChatApp {
     }
   }
   
-
   sendMessage() {
     const input = document.getElementById(this.inputBoxId);
     const user_input = input.value.trim();
@@ -200,8 +199,6 @@ class ChatApp {
   
     return messageContainer;
   }
-  
-  
 
   enableEditing(messageContainer) {
     this.editingMessageElement = messageContainer;
@@ -213,19 +210,28 @@ class ChatApp {
     textarea.className = "editable-textarea";
     textarea.rows = currentText.split('\n').length || 1; // Adjust rows based on content
   
+    // Store the original message content
+    textarea.originalMessageContent = messageContent;
+  
     textarea.onkeydown = (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault(); // Prevent adding a new line
         this.saveEdit(textarea);
       }
     };
-    textarea.onblur = () => this.saveEdit(textarea);
+    textarea.onblur = () => this.cancelEdit(textarea); // Call cancelEdit on blur
   
     messageContent.replaceWith(textarea);
     textarea.focus();
   }
   
-
+  cancelEdit(textareaElement) {
+    if (textareaElement && textareaElement.originalMessageContent) {
+      textareaElement.replaceWith(textareaElement.originalMessageContent);
+    }
+    this.editingMessageElement = null;
+  }
+  
   saveEdit(textareaElement) {
     clearTimeout(this.saveEditTimeout); // Clear pending executions
   
@@ -264,9 +270,6 @@ class ChatApp {
     }, 10); // Delay 10ms to avoid DOM conflicts
   }
   
-
-  
-
   updateUserMessage(newText) {
     const inputElement =
       this.editingMessageElement.querySelector(".editable-input");
