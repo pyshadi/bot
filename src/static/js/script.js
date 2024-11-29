@@ -21,6 +21,7 @@ class ChatApp {
     this.messagesContainerId = config.messagesContainerId || "messages";
     this.editingMessageElement = null; // Track element being edited
     this.saveEditTimeout = null; // Variable for debouncing
+    this.rawResponses = []; // Array to store raw AI responses
 
     // Initialize event listeners
     this.initEventListeners();
@@ -114,11 +115,14 @@ class ChatApp {
       .then((response) => response.json())
       .then((data) => {
         aiMessageElement.innerHTML = ""; // Clear previous content
-
+  
+        const rawResponse = data.response; // Store raw response
+        this.rawResponses.push(rawResponse); // Save raw response for saving later
+  
         const { diagrams, remainingText } = this.extractMermaidDiagramsAndText(
-          data.response
+          rawResponse
         );
-
+  
         // Render text as Markdown
         if (remainingText) {
           const textContainer = document.createElement("div");
@@ -126,14 +130,14 @@ class ChatApp {
           textContainer.innerHTML = md.render(remainingText); // Render Markdown
           aiMessageElement.appendChild(textContainer);
         }
-
+  
         // Render Mermaid diagrams
         diagrams.forEach((diagram, index) => {
           const mermaidContainer = document.createElement("div");
           mermaidContainer.className = "mermaid";
           mermaidContainer.textContent = diagram;
           aiMessageElement.appendChild(mermaidContainer);
-
+  
           try {
             mermaid.init(undefined, mermaidContainer);
           } catch (error) {
@@ -148,7 +152,7 @@ class ChatApp {
             aiMessageElement.appendChild(errorElement);
           }
         });
-
+  
         Prism.highlightAll(); // Apply syntax highlighting
       })
       .catch((error) => {
@@ -293,35 +297,36 @@ class ChatApp {
   saveChat() {
     const messagesContainer = document.getElementById(this.messagesContainerId);
     let chatContent = "";
-
+    let aiResponseIndex = 0; // Track raw AI responses
+  
     messagesContainer
       .querySelectorAll(".message-container")
       .forEach((container, index) => {
-        let messageText = "";
-
         if (index % 2 === 0) {
-          const userMessageElement =
-            container.querySelector(".user-message");
-          messageText = userMessageElement
+          // User message
+          const userMessageElement = container.querySelector(".user-message");
+          const userMessage = userMessageElement
             ? userMessageElement.textContent.trim()
-            : container.textContent.trim();
-          chatContent += "User: " + messageText + "\n";
+            : "";
+          chatContent += `User: ${userMessage}\n`;
         } else {
-          messageText = container.textContent.trim();
-          chatContent += "AI: " + messageText + "\n";
+          // AI message
+          const rawAIResponse = this.rawResponses[aiResponseIndex++] || "";
+          chatContent += `AI (Raw Response): ${rawAIResponse}\n`;
         }
       });
-
+  
     const blob = new Blob([chatContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-
+  
     const link = document.createElement("a");
     link.href = url;
     link.download = "chat.txt";
     link.click();
-
+  
     URL.revokeObjectURL(url);
   }
+  
 
   clearChat() {
     const messagesContainer = document.getElementById(this.messagesContainerId);
