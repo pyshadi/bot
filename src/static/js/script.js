@@ -84,7 +84,7 @@ class FileHandler {
 
             resolve(result.value); // Extracted text
           } catch (error) {
-            console.error("Error using mammoth.js:", error);
+            alert("Failed to process the file: " + error.message);
             reject(`Error reading Word file (${file.name}): ${error.message}`);
           }
         };
