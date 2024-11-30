@@ -21,6 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
   </head>
 
   <body>
@@ -53,6 +54,16 @@
             rows="2"
             placeholder="Type your message here..."
           ></textarea>
+
+          <!-- Attach Button -->
+          <button id="attachButton" title="Attach File">
+            <i class="fas fa-paperclip"></i>
+          </button>
+
+          <!-- Hidden File Input for Attach Button -->
+          <input type="file" id="fileInput" style="display: none" />
+
+          <!-- Send Button -->
           <button id="sendButton" title="Send Message">
             <i class="fas fa-paper-plane"></i>
           </button>

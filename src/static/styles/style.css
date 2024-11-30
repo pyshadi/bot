@@ -46,7 +46,7 @@ body {
 
 .button-group {
   display: flex;
-  gap: 10px;
+  gap: 5px;
 }
 
 .button-group button {
@@ -141,8 +141,7 @@ body {
   border-radius: 4px;
   margin-right: 10px;
   resize: vertical;
-  min-height: 40px;
-  max-height: 200px;
+
   overflow-y: auto;
   font-size: 14px;
 }
@@ -160,6 +159,7 @@ body {
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
+  margin-left: 5px;
 }
 
 #sendButton i {
@@ -167,6 +167,29 @@ body {
 }
 
 #sendButton:hover {
+  background-color: #1f1f1f;
+}
+
+#attachButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px; /* Same size as Send Button */
+  height: 40px;
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 5px;
+}
+
+#attachButton i {
+  font-size: 16px; /* Icon size */
+}
+
+#attachButton:hover {
   background-color: #1f1f1f;
 }
 

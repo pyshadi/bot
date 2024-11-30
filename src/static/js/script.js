@@ -55,6 +55,48 @@ class AiMessage extends Message {
 }
 
 class FileHandler {
+  static async readFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      // Read as text for .txt and similar files
+      if (file.type.startsWith("text/") || file.name.endsWith(".txt")) {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject("Error reading text file.");
+        reader.readAsText(file);
+      }
+      // Read as binary and use libraries for PDF, Word, etc.
+      else if (file.name.endsWith(".pdf")) {
+        reader.onload = async () => {
+          try {
+            const pdfjsLib = window["pdfjs-dist/build/pdf"];
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+              "//cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.worker.min.js";
+            const pdf = await pdfjsLib.getDocument(reader.result).promise;
+            const text = await FileHandler.extractPDFText(pdf);
+            resolve(text);
+          } catch (error) {
+            reject("Error reading PDF file.");
+          }
+        };
+        reader.onerror = () => reject("Error reading binary file.");
+        reader.readAsArrayBuffer(file);
+      } else {
+        reject("Unsupported file type.");
+      }
+    });
+  }
+
+  static async extractPDFText(pdf) {
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map((item) => item.str).join(" ") + "\n";
+    }
+    return text.trim();
+  }
+
   static saveChat(rawResponses, messagesContainer) {
     let chatContent = "";
     let aiResponseIndex = 0; // Track raw AI responses
@@ -146,6 +188,44 @@ class Chat {
 
     // Initialize controls
     this.controls.addEventListeners();
+
+    // Add attach button handler
+    const attachButton = document.getElementById("attachButton");
+    const fileInput = document.getElementById("fileInput");
+
+    if (attachButton && fileInput) {
+      attachButton.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", (event) =>
+        this.handleFileUpload(event)
+      );
+    }
+  }
+
+  async handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const fileText = await FileHandler.readFile(file);
+      console.log("File content:", fileText);
+
+      const userMessage = new UserMessage(fileText);
+      const userMessageContainer = this.createMessageContainer();
+      userMessageContainer.appendChild(
+        userMessage.renderWithEditButton(() =>
+          this.enableEditing(userMessageContainer)
+        )
+      );
+      this.messagesContainer.appendChild(userMessageContainer);
+
+      const aiMessageContainer = this.createMessageContainer();
+      this.messagesContainer.appendChild(aiMessageContainer);
+
+      this.fetchAIResponse(fileText, aiMessageContainer);
+    } catch (error) {
+      console.error("Error handling file upload:", error);
+      alert("Failed to process the file: " + error);
+    }
   }
 
   sendMessage() {
