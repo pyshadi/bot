@@ -178,9 +178,15 @@ class Chat {
   }
 
   fetchAIResponse(userInput, aiMessageElement) {
-    // Ensure loading dots are displayed
     console.log("Fetching AI response...");
-    aiMessageElement.innerHTML = `<div class="loading-dots">...</div>`;
+
+    aiMessageElement.classList.add("ai-message");
+
+    // Add the spinner as the loading indicator
+    const spinner = document.createElement("div");
+    spinner.className = "spinner";
+    aiMessageElement.appendChild(spinner);
+    console.log("Spinner added:", spinner);
 
     fetch(this.apiURL, {
       method: "POST",
@@ -191,7 +197,8 @@ class Chat {
     })
       .then((response) => response.json())
       .then((data) => {
-        aiMessageElement.innerHTML = ""; // Clear loading dots
+        console.log("AI response received, clearing spinner...");
+        aiMessageElement.innerHTML = ""; // Clear spinner
 
         const rawResponse = data.response; // Save raw response
         this.rawResponses.push(rawResponse);
@@ -215,6 +222,7 @@ class Chat {
           aiMessageElement.appendChild(mermaidContainer);
 
           try {
+            console.log(`Initializing Mermaid diagram ${index + 1}`);
             mermaid.init(undefined, mermaidContainer);
           } catch (error) {
             console.error(
