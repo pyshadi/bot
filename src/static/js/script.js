@@ -281,7 +281,15 @@ class Chat {
         aiMessageElement.innerHTML = ""; // Clear spinner
 
         const rawResponse = data.response; // Save raw response
-        this.rawResponses.push(rawResponse);
+
+        // Update or append the raw response in the array
+        const messageIndex = Array.from(
+          this.messagesContainer.children
+        ).indexOf(aiMessageElement);
+        const aiIndex = Math.floor(messageIndex / 2);
+
+        // Replace the existing raw response if it exists, or add a new one
+        this.rawResponses[aiIndex] = rawResponse;
 
         const { diagrams, remainingText } =
           this.extractMermaidDiagramsAndText(rawResponse);
