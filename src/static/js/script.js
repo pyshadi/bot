@@ -209,19 +209,12 @@ class Chat {
       const fileText = await FileHandler.readFile(file);
       console.log("File content:", fileText);
 
-      const userMessage = new UserMessage(fileText);
-      const userMessageContainer = this.createMessageContainer();
-      userMessageContainer.appendChild(
-        userMessage.renderWithEditButton(() =>
-          this.enableEditing(userMessageContainer)
-        )
-      );
-      this.messagesContainer.appendChild(userMessageContainer);
+      // Insert the file content into the user input text area
+      const inputBox = document.getElementById(this.inputBoxId);
+      inputBox.value = fileText; // Set the file content in the input box
 
-      const aiMessageContainer = this.createMessageContainer();
-      this.messagesContainer.appendChild(aiMessageContainer);
-
-      this.fetchAIResponse(fileText, aiMessageContainer);
+      // Optionally focus the input box so the user can see and edit the content
+      inputBox.focus();
     } catch (error) {
       console.error("Error handling file upload:", error);
       alert("Failed to process the file: " + error);
