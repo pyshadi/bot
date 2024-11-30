@@ -59,13 +59,41 @@ class FileHandler {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
-      // Read as text for .txt and similar files
+      // Validate file type
+      if (![".txt", ".docx", ".pdf"].some((ext) => file.name.endsWith(ext))) {
+        reject(
+          "Unsupported file type. Please upload .txt, .pdf, or .docx files."
+        );
+        return;
+      }
+
+      // Handle .txt files
       if (file.type.startsWith("text/") || file.name.endsWith(".txt")) {
         reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject("Error reading text file.");
+        reader.onerror = () => reject(`Error reading text file: ${file.name}`);
         reader.readAsText(file);
       }
-      // Read as binary and use libraries for PDF, Word, etc.
+
+      // Handle .docx files
+      else if (file.name.endsWith(".docx")) {
+        reader.onload = async () => {
+          try {
+            const result = await mammoth.extractRawText({
+              arrayBuffer: reader.result,
+            });
+
+            resolve(result.value); // Extracted text
+          } catch (error) {
+            console.error("Error using mammoth.js:", error);
+            reject(`Error reading Word file (${file.name}): ${error.message}`);
+          }
+        };
+        reader.onerror = () =>
+          reject(`Error reading binary file: ${file.name}`);
+        reader.readAsArrayBuffer(file);
+      }
+
+      // Handle .pdf files
       else if (file.name.endsWith(".pdf")) {
         reader.onload = async () => {
           try {
@@ -76,13 +104,12 @@ class FileHandler {
             const text = await FileHandler.extractPDFText(pdf);
             resolve(text);
           } catch (error) {
-            reject("Error reading PDF file.");
+            reject(`Error reading PDF file (${file.name}): ${error.message}`);
           }
         };
-        reader.onerror = () => reject("Error reading binary file.");
+        reader.onerror = () =>
+          reject(`Error reading binary file: ${file.name}`);
         reader.readAsArrayBuffer(file);
-      } else {
-        reject("Unsupported file type.");
       }
     });
   }
