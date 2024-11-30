@@ -124,24 +124,24 @@ class FileHandler {
     return text.trim();
   }
 
-  static saveChat(rawResponses, messagesContainer) {
+  static saveChat(messagesContainer) {
     let chatContent = "";
-    let aiResponseIndex = 0; // Track raw AI responses
 
+    // Loop through all message containers and capture their content
     messagesContainer
       .querySelectorAll(".message-container")
-      .forEach((container, index) => {
-        if (index % 2 === 0) {
-          // User message
-          const userMessageElement = container.querySelector(".user-message");
-          const userMessage = userMessageElement
-            ? userMessageElement.textContent.trim()
-            : "";
-          chatContent += `User: ${userMessage}\n`;
-        } else {
-          // AI message
-          const rawAIResponse = rawResponses[aiResponseIndex++] || "";
-          chatContent += `AI (Raw Response): ${rawAIResponse}\n`;
+      .forEach((container) => {
+        const userMessageElement = container.querySelector(".user-message");
+        const aiMessageElement = container.querySelector(".ai-message");
+
+        if (userMessageElement) {
+          const userText = userMessageElement.textContent.trim();
+          chatContent += `User: ${userText}\n`;
+        }
+
+        if (aiMessageElement) {
+          const aiText = aiMessageElement.textContent.trim();
+          chatContent += `AI: ${aiText}\n`;
         }
       });
 
@@ -185,10 +185,7 @@ class Controls {
     const saveButton = document.getElementById("saveButton");
     if (saveButton) {
       saveButton.addEventListener("click", () =>
-        FileHandler.saveChat(
-          this.chatApp.rawResponses,
-          this.chatApp.messagesContainer
-        )
+        FileHandler.saveChat(this.chatApp.messagesContainer)
       );
     }
 
@@ -212,6 +209,7 @@ class Chat {
     this.editingMessageElement = null; // Track element being edited
     this.rawResponses = []; // Array to store raw AI responses
     this.controls = new Controls(this);
+    this.sessionId = this.generateSessionId();
 
     // Initialize controls
     this.controls.addEventListeners();
@@ -226,6 +224,17 @@ class Chat {
         this.handleFileUpload(event)
       );
     }
+  }
+
+  generateSessionId() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0,
+          v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
   }
 
   async handleFileUpload(event) {
@@ -282,67 +291,47 @@ class Chat {
 
     aiMessageElement.classList.add("ai-message");
 
-    // Add the spinner as the loading indicator
     const spinner = document.createElement("div");
     spinner.className = "spinner";
     aiMessageElement.appendChild(spinner);
-    console.log("Spinner added:", spinner);
 
     fetch(this.apiURL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model: this.model, user_input: userInput.trim() }),
+      body: JSON.stringify({
+        session_id: this.sessionId,
+        model: this.model,
+        user_input: userInput.trim(),
+      }),
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log("AI response received, clearing spinner...");
         aiMessageElement.innerHTML = ""; // Clear spinner
 
         const rawResponse = data.response; // Save raw response
+        this.rawResponses.push(rawResponse);
 
-        // Update or append the raw response in the array
-        const messageIndex = Array.from(
-          this.messagesContainer.children
-        ).indexOf(aiMessageElement);
-        const aiIndex = Math.floor(messageIndex / 2);
-
-        // Replace the existing raw response if it exists, or add a new one
-        this.rawResponses[aiIndex] = rawResponse;
-
+        // Extract diagrams and text from the response
         const { diagrams, remainingText } =
           this.extractMermaidDiagramsAndText(rawResponse);
 
-        // Render text as Markdown
+        // Render remaining text
         if (remainingText) {
           const textContainer = document.createElement("div");
-          textContainer.className = "markdown-text";
-          textContainer.innerHTML = md.render(remainingText); // Render Markdown
+          textContainer.className = "ai-message";
+          textContainer.innerHTML = md.render(remainingText);
           aiMessageElement.appendChild(textContainer);
         }
 
         // Render Mermaid diagrams
-        diagrams.forEach((diagram, index) => {
+        diagrams.forEach((diagram) => {
           const mermaidContainer = document.createElement("div");
           mermaidContainer.className = "mermaid";
           mermaidContainer.textContent = diagram;
           aiMessageElement.appendChild(mermaidContainer);
-
-          try {
-            console.log(`Initializing Mermaid diagram ${index + 1}`);
-            mermaid.init(undefined, mermaidContainer);
-          } catch (error) {
-            console.error(
-              `Mermaid rendering failed for diagram ${index + 1}:`,
-              error
-            );
-            const errorElement = document.createElement("p");
-            errorElement.textContent = `Failed to render Mermaid diagram ${
-              index + 1
-            }. Check the syntax.`;
-            aiMessageElement.appendChild(errorElement);
-          }
+          mermaid.init(undefined, mermaidContainer);
         });
 
         Prism.highlightAll(); // Apply syntax highlighting
@@ -409,68 +398,32 @@ class Chat {
   }
 
   saveEdit(textarea, messageContainer) {
-    console.log("Saving edited message...");
-
     const newText = textarea.value.trim();
-    console.log("New text entered by user:", newText);
 
     if (!newText) {
       console.error("New text is empty, aborting save.");
       return;
     }
 
-    try {
-      // Create a new UserMessage instance
-      const userMessage = new UserMessage(newText);
+    const userMessage = new UserMessage(newText);
+    const userMessageElement = userMessage.renderWithEditButton(() => {
+      this.enableEditing(messageContainer);
+    });
 
-      // Render the updated user message with the edit button
-      const userMessageElement = userMessage.renderWithEditButton(() => {
-        console.log("Edit button clicked, re-enabling editing...");
-        this.enableEditing(messageContainer);
-      });
+    messageContainer.innerHTML = ""; // Clear existing content
+    messageContainer.appendChild(userMessageElement);
 
-      console.log(
-        "Replacing textarea with new user message element:",
-        userMessageElement
-      );
+    this.removeSubsequentMessages(messageContainer);
 
-      // Debug: Check messageContainer before update
-      console.log(
-        "Before replacing container content:",
-        messageContainer.innerHTML
-      );
-
-      // Replace the message container's content with the new user message
-      messageContainer.innerHTML = ""; // Clear existing content
-      messageContainer.appendChild(userMessageElement);
-
-      // Debug: Check messageContainer after update
-      console.log(
-        "After replacing container content:",
-        messageContainer.innerHTML
-      );
-
-      console.log("Message container updated successfully.");
-
-      // Update the AI response
-      this.removeSubsequentMessages(messageContainer); // Remove old AI responses
-
-      // Ensure there's a placeholder AI response to update
-      let aiMessage = messageContainer.nextElementSibling;
-      if (!aiMessage || !aiMessage.querySelector(".ai-message")) {
-        aiMessage = this.createMessageContainer();
-        aiMessage.classList.add("ai-message-container");
-        this.messagesContainer.appendChild(aiMessage);
-      }
-
-      console.log("Fetching new AI response for updated message...");
-      this.fetchAIResponse(newText, aiMessage);
-    } catch (error) {
-      console.error(
-        "Error replacing textarea with new message element:",
-        error
-      );
+    let aiMessage = messageContainer.nextElementSibling;
+    if (!aiMessage || !aiMessage.querySelector(".ai-message")) {
+      aiMessage = this.createMessageContainer();
+      aiMessage.classList.add("ai-message-container");
+      this.messagesContainer.appendChild(aiMessage);
     }
+
+    // Fetch updated AI response for the new message
+    this.fetchAIResponse(newText, aiMessage);
 
     // Clear the editing reference
     this.editingMessageElement = null;
