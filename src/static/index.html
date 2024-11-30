@@ -8,6 +8,14 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+      integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
     <link rel="stylesheet" href="static/styles/style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
@@ -21,8 +29,16 @@
       <div class="header">
         <h1>Chat with llama3.1</h1>
         <div class="button-group">
-          <button id="saveButton">Save Chat</button>
-          <button id="clearButton">Clear Chat</button>
+          <button id="saveButton" title="Save Chat">
+            <i class="fas fa-save"></i>
+            <!-- Replace text with icon -->
+          </button>
+
+          <!-- Clear Chat Button -->
+          <button id="clearButton" title="Clear Chat">
+            <i class="fas fa-trash"></i>
+            <!-- Replace text with icon -->
+          </button>
         </div>
       </div>
 
@@ -37,7 +53,9 @@
             rows="2"
             placeholder="Type your message here..."
           ></textarea>
-          <button id="sendButton">Send</button>
+          <button id="sendButton" title="Send Message">
+            <i class="fas fa-paper-plane"></i>
+          </button>
         </div>
       </div>
     </div>

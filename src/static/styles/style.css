@@ -50,17 +50,25 @@ body {
 }
 
 .button-group button {
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
   background-color: #000000;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
+  width: 40px; /* Optional: Makes buttons square */
+  height: 40px; /* Optional: Matches width for square buttons */
 }
 
 .button-group button:hover {
   background-color: #1f1f1f;
+}
+.button-group button i {
+  font-size: 16px; /* Adjust icon size */
 }
 
 /* Messages section */
@@ -139,14 +147,23 @@ body {
   font-size: 14px;
 }
 
+/* Send Button */
 #sendButton {
-  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px; /* Match button group size */
+  height: 40px; /* Match button group size */
   background-color: #000000;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
+}
+
+#sendButton i {
+  font-size: 16px; /* Icon size matches button group */
 }
 
 #sendButton:hover {
