@@ -1,4 +1,4 @@
-// initialize markdown-it and mermaid globally
+// Initialize markdown-it and mermaid globally
 const md = window.markdownit({
   highlight: function (str, lang) {
     if (lang && Prism.languages[lang]) {
@@ -6,123 +6,199 @@ const md = window.markdownit({
         return Prism.highlight(str, Prism.languages[lang], lang);
       } catch (__) {}
     }
-    return ''; // default escaping
+    return ""; // default escaping
   },
 });
-
 mermaid.initialize({ startOnLoad: false }); // prevent render on load
 
-class ChatApp {
+class Message {
+  constructor(content, className) {
+    this.content = content;
+    this.className = className;
+  }
+
+  render() {
+    const message = document.createElement("div");
+    message.className = `message ${this.className}`;
+    message.innerHTML = md.render(this.content); // Render Markdown
+    return message;
+  }
+}
+
+class UserMessage extends Message {
+  constructor(content) {
+    super(content, "user-message");
+  }
+
+  renderWithEditButton(editHandler) {
+    const userContainer = document.createElement("div");
+    userContainer.className = "user-message-container";
+
+    const messageElement = this.render();
+
+    const editButton = document.createElement("button");
+    editButton.className = "edit-button";
+    editButton.textContent = "Edit";
+    editButton.onclick = editHandler;
+
+    userContainer.appendChild(editButton);
+    userContainer.appendChild(messageElement);
+
+    return userContainer;
+  }
+}
+
+class AiMessage extends Message {
+  constructor(content) {
+    super(content, "ai-message");
+  }
+}
+
+class FileHandler {
+  static saveChat(rawResponses, messagesContainer) {
+    let chatContent = "";
+    let aiResponseIndex = 0; // Track raw AI responses
+
+    messagesContainer
+      .querySelectorAll(".message-container")
+      .forEach((container, index) => {
+        if (index % 2 === 0) {
+          // User message
+          const userMessageElement = container.querySelector(".user-message");
+          const userMessage = userMessageElement
+            ? userMessageElement.textContent.trim()
+            : "";
+          chatContent += `User: ${userMessage}\n`;
+        } else {
+          // AI message
+          const rawAIResponse = rawResponses[aiResponseIndex++] || "";
+          chatContent += `AI (Raw Response): ${rawAIResponse}\n`;
+        }
+      });
+
+    const blob = new Blob([chatContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "chat.txt";
+    link.click();
+
+    URL.revokeObjectURL(url);
+  }
+
+  static clearChat(messagesContainer) {
+    messagesContainer.innerHTML = ""; // clear all messages
+  }
+}
+
+class Controls {
+  constructor(chatApp) {
+    this.chatApp = chatApp;
+  }
+
+  addEventListeners() {
+    const sendButton = document.getElementById("sendButton");
+    if (sendButton) {
+      sendButton.addEventListener("click", () => this.chatApp.sendMessage());
+    }
+
+    const inputBox = document.getElementById(this.chatApp.inputBoxId);
+    if (inputBox) {
+      inputBox.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault(); // prevents the default newline insertion
+          this.chatApp.sendMessage();
+        }
+      });
+    }
+
+    const saveButton = document.getElementById("saveButton");
+    if (saveButton) {
+      saveButton.addEventListener("click", () =>
+        FileHandler.saveChat(
+          this.chatApp.rawResponses,
+          this.chatApp.messagesContainer
+        )
+      );
+    }
+
+    const clearButton = document.getElementById("clearButton");
+    if (clearButton) {
+      clearButton.addEventListener("click", () =>
+        FileHandler.clearChat(this.chatApp.messagesContainer)
+      );
+    }
+  }
+}
+
+// Chat class
+class Chat {
   constructor(config = {}) {
-    // Configuration parameters with defaults
     this.apiURL = config.apiURL || "http://127.0.0.1:8000/chat/";
     this.model = config.model || "llama3.1";
     this.inputBoxId = config.inputBoxId || "inputBox";
     this.messagesContainerId = config.messagesContainerId || "messages";
+    this.messagesContainer = document.getElementById(this.messagesContainerId);
     this.editingMessageElement = null; // Track element being edited
-    this.saveEditTimeout = null; // Variable for debouncing
     this.rawResponses = []; // Array to store raw AI responses
+    this.controls = new Controls(this);
 
-    // Initialize event listeners
-    this.initEventListeners();
+    // Initialize controls
+    this.controls.addEventListeners();
   }
 
-  initEventListeners() {
-    const inputBox = document.getElementById(this.inputBoxId);
-    if (inputBox) {
-      inputBox.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" && !event.shiftKey) {
-          event.preventDefault(); // Prevents the default newline insertion
-          this.sendMessage();
-        }
-      });
-    }
-  
-    // Add event listener for the Send button
-    const sendButton = document.getElementById("sendButton");
-    if (sendButton) {
-      sendButton.addEventListener("click", () => this.sendMessage());
-    }
-  
-    // Add event listeners for Save and Clear buttons
-    const saveButton = document.getElementById("saveButton");
-    if (saveButton) {
-      saveButton.addEventListener("click", () => this.saveChat());
-    }
-  
-    const clearButton = document.getElementById("clearButton");
-    if (clearButton) {
-      clearButton.addEventListener("click", () => this.clearChat());
-    }
-  }
-  
   sendMessage() {
-    const input = document.getElementById(this.inputBoxId);
-    const user_input = input.value.trim();
+    const inputBox = document.getElementById(this.inputBoxId);
+    const userInput = inputBox.value.trim();
 
-    if (!user_input) return;
+    if (!userInput) return;
 
     if (this.editingMessageElement) {
-      this.updateUserMessage(user_input);
-      this.removeSubsequentMessages(this.editingMessageElement);
-
-      let aiMessageElement = this.editingMessageElement.nextElementSibling;
-      if (
-        !aiMessageElement ||
-        !aiMessageElement.classList.contains("ai-message")
-      ) {
-        aiMessageElement = this.displayMessage("...", "ai-message");
-      }
-      this.fetchAIResponse(user_input, aiMessageElement);
+      this.updateUserMessage(userInput);
       this.editingMessageElement = null;
     } else {
-      this.displayMessage(user_input, "user-message", true); // Directly display the user message
-      const aiMessageElement = this.displayMessage("...", "ai-message");
-      this.fetchAIResponse(user_input, aiMessageElement);
-    }
-    input.value = "";
-  }
+      const userMessage = new UserMessage(userInput);
+      const userMessageContainer = this.createMessageContainer();
+      userMessageContainer.appendChild(
+        userMessage.renderWithEditButton(() =>
+          this.enableEditing(userMessageContainer)
+        )
+      );
+      this.messagesContainer.appendChild(userMessageContainer);
 
-  extractMermaidDiagramsAndText(response) {
-    const mermaidCodeRegex = /(?:```mermaid\n([\s\S]*?)```|(?:^|\n)(flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|mindmap|timeline|zenuml)[\s\S]*?(?=\n\S|\n$))/g;
-    let match;
-    const diagrams = [];
-    let remainingText = response;
+      const aiMessageContainer = this.createMessageContainer();
+      this.messagesContainer.appendChild(aiMessageContainer);
 
-    // Extract Mermaid diagrams
-    while ((match = mermaidCodeRegex.exec(response)) !== null) {
-      const diagram = (match[1] || match[0]).trim(); // get matched diagram code
-      diagrams.push(diagram);
-
-      // remove diagram from the remaining text
-      remainingText = remainingText.replace(match[0], "").trim();
+      this.fetchAIResponse(userInput, aiMessageContainer);
     }
 
-    console.log("Extracted diagrams:", diagrams);
-    console.log("Remaining text:", remainingText);
-
-    return { diagrams, remainingText };
+    inputBox.value = "";
+    this.scrollToBottom();
   }
 
-  fetchAIResponse(user_input, aiMessageElement) {
+  fetchAIResponse(userInput, aiMessageElement) {
+    // Ensure loading dots are displayed
+    console.log("Fetching AI response...");
+    aiMessageElement.innerHTML = `<div class="loading-dots">...</div>`;
+
     fetch(this.apiURL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model: this.model, user_input: user_input.trim() }),
+      body: JSON.stringify({ model: this.model, user_input: userInput.trim() }),
     })
       .then((response) => response.json())
       .then((data) => {
-        aiMessageElement.innerHTML = ""; // Clear previous content
-  
-        const rawResponse = data.response; // Store raw response
-        this.rawResponses.push(rawResponse); // Save raw response for saving later
-  
-        const { diagrams, remainingText } = this.extractMermaidDiagramsAndText(
-          rawResponse
-        );
-  
+        aiMessageElement.innerHTML = ""; // Clear loading dots
+
+        const rawResponse = data.response; // Save raw response
+        this.rawResponses.push(rawResponse);
+
+        const { diagrams, remainingText } =
+          this.extractMermaidDiagramsAndText(rawResponse);
+
         // Render text as Markdown
         if (remainingText) {
           const textContainer = document.createElement("div");
@@ -130,14 +206,14 @@ class ChatApp {
           textContainer.innerHTML = md.render(remainingText); // Render Markdown
           aiMessageElement.appendChild(textContainer);
         }
-  
+
         // Render Mermaid diagrams
         diagrams.forEach((diagram, index) => {
           const mermaidContainer = document.createElement("div");
           mermaidContainer.className = "mermaid";
           mermaidContainer.textContent = diagram;
           aiMessageElement.appendChild(mermaidContainer);
-  
+
           try {
             mermaid.init(undefined, mermaidContainer);
           } catch (error) {
@@ -152,190 +228,199 @@ class ChatApp {
             aiMessageElement.appendChild(errorElement);
           }
         });
-  
+
         Prism.highlightAll(); // Apply syntax highlighting
       })
       .catch((error) => {
         console.error("Error fetching AI response:", error);
-        aiMessageElement.textContent =
+        aiMessageElement.innerHTML =
           "There was an error processing your request.";
       });
   }
 
-  displayMessage(content, className, isUser = false) {
-    const messagesList = document.getElementById(this.messagesContainerId);
-  
-    const messageContainer = document.createElement("div");
-    messageContainer.className = "message-container";
-  
-    if (isUser) {
-      const userContainer = document.createElement("div");
-      userContainer.className = "user-message-container";
-  
-      const message = document.createElement("div");
-      message.className = `message user-message`;
-      message.innerHTML = md.render(content); // Render Markdown
-  
-      const editButton = document.createElement("button");
-      editButton.className = "edit-button";
-      editButton.textContent = "Edit";
-      editButton.onclick = () => this.enableEditing(messageContainer);
-  
-      userContainer.appendChild(editButton);
-      userContainer.appendChild(message);
-  
-      messageContainer.appendChild(userContainer);
-    } else {
-      const aiContainer = document.createElement("div");
-      aiContainer.className = "ai-message-container";
-  
-      const message = document.createElement("div");
-      message.className = `message ai-message`;
-      message.innerHTML = md.render(content); // Render Markdown
-  
-      aiContainer.appendChild(message);
-  
-      messageContainer.appendChild(aiContainer);
-    }
-  
-    messagesList.appendChild(messageContainer);
-    messagesList.scrollTop = messagesList.scrollHeight;
-  
-    return messageContainer;
+  createMessageContainer() {
+    const container = document.createElement("div");
+    container.className = "message-container";
+    return container;
   }
 
   enableEditing(messageContainer) {
+    console.log("Enabling editing for message container:", messageContainer);
+
     this.editingMessageElement = messageContainer;
     const messageContent = messageContainer.querySelector(".user-message");
+    if (!messageContent) {
+      console.error("No user message found in the container.");
+      return;
+    }
+
     const currentText = messageContent.textContent;
-  
+    console.log("Current text in the message:", currentText);
+
     const textarea = document.createElement("textarea");
     textarea.value = currentText;
     textarea.className = "editable-textarea";
-    textarea.rows = currentText.split('\n').length || 1; // Adjust rows based on content
-  
-    // Store the original message content
-    textarea.originalMessageContent = messageContent;
-  
-    textarea.onkeydown = (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault(); // Prevent adding a new line
-        this.saveEdit(textarea);
+    textarea.rows = currentText.split("\n").length;
+
+    // Store the original text for restoring on cancel
+    textarea.dataset.originalText = currentText;
+
+    console.log("Replacing message content with textarea:", textarea);
+
+    try {
+      messageContent.replaceWith(textarea);
+    } catch (error) {
+      console.error("Error replacing message content with textarea:", error);
+      return;
+    }
+
+    textarea.focus();
+    console.log("Textarea focused for editing.");
+
+    // Handle saving on Enter and canceling on blur
+    textarea.onkeydown = (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault(); // Prevent new line
+        console.log("Enter pressed, saving edit...");
+        this.saveEdit(textarea, messageContainer);
       }
     };
-    textarea.onblur = () => this.cancelEdit(textarea); // Call cancelEdit on blur
-  
-    messageContent.replaceWith(textarea);
-    textarea.focus();
+
+    textarea.onblur = () => {
+      console.log("Textarea lost focus, canceling edit...");
+      this.cancelEdit(textarea, messageContainer);
+    };
   }
-  
-  cancelEdit(textareaElement) {
-    if (textareaElement && textareaElement.originalMessageContent) {
-      textareaElement.replaceWith(textareaElement.originalMessageContent);
+
+  saveEdit(textarea, messageContainer) {
+    console.log("Saving edited message...");
+
+    const newText = textarea.value.trim();
+    console.log("New text entered by user:", newText);
+
+    if (!newText) {
+      console.error("New text is empty, aborting save.");
+      return;
     }
+
+    try {
+      // Create a new UserMessage instance
+      const userMessage = new UserMessage(newText);
+
+      // Render the updated user message with the edit button
+      const userMessageElement = userMessage.renderWithEditButton(() => {
+        console.log("Edit button clicked, re-enabling editing...");
+        this.enableEditing(messageContainer);
+      });
+
+      console.log(
+        "Replacing textarea with new user message element:",
+        userMessageElement
+      );
+
+      // Debug: Check messageContainer before update
+      console.log(
+        "Before replacing container content:",
+        messageContainer.innerHTML
+      );
+
+      // Replace the message container's content with the new user message
+      messageContainer.innerHTML = ""; // Clear existing content
+      messageContainer.appendChild(userMessageElement);
+
+      // Debug: Check messageContainer after update
+      console.log(
+        "After replacing container content:",
+        messageContainer.innerHTML
+      );
+
+      console.log("Message container updated successfully.");
+
+      // Update the AI response
+      this.removeSubsequentMessages(messageContainer); // Remove old AI responses
+
+      // Ensure there's a placeholder AI response to update
+      let aiMessage = messageContainer.nextElementSibling;
+      if (!aiMessage || !aiMessage.querySelector(".ai-message")) {
+        aiMessage = this.createMessageContainer();
+        aiMessage.classList.add("ai-message-container");
+        this.messagesContainer.appendChild(aiMessage);
+      }
+
+      console.log("Fetching new AI response for updated message...");
+      this.fetchAIResponse(newText, aiMessage);
+    } catch (error) {
+      console.error(
+        "Error replacing textarea with new message element:",
+        error
+      );
+    }
+
+    // Clear the editing reference
     this.editingMessageElement = null;
   }
-  
-  saveEdit(textareaElement) {
-    clearTimeout(this.saveEditTimeout); // Clear pending executions
-  
-    // Prevent blur handler from triggering
-    textareaElement.onblur = null;
-  
-    this.saveEditTimeout = setTimeout(() => {
-      const newText = textareaElement.value.trim(); // Trim whitespace
-  
-      if (newText && this.editingMessageElement) {
-        const messageContent = document.createElement("div");
-        messageContent.className = "message user-message";
-        messageContent.innerHTML = md.render(newText); // Render Markdown
-  
-        try {
-          textareaElement.parentNode.replaceChild(messageContent, textareaElement);
-        } catch (error) {
-          console.error("Error replacing textarea:", error);
-          return;
-        }
-  
-        this.removeSubsequentMessages(this.editingMessageElement);
-  
-        let aiMessage = this.editingMessageElement.nextElementSibling;
-        if (!aiMessage || !aiMessage.querySelector('.ai-message')) {
-          aiMessage = this.displayMessage("...", "ai-message");
-        }
-  
-        this.fetchAIResponse(newText, aiMessage);
-      }
-  
-      this.editingMessageElement = null; // Clear editing reference
-    }, 10); // Delay to avoid DOM conflicts
-  }
-  
-  
-  updateUserMessage(newText) {
-    const inputElement =
-      this.editingMessageElement.querySelector(".editable-input");
 
-    const messageContent = document.createElement("div");
-    messageContent.className = "message user-message";
-    messageContent.textContent = newText;
+  cancelEdit(textarea, messageContainer) {
+    console.log("Canceling edit and restoring original message...");
 
-    inputElement.replaceWith(messageContent);
+    // Retrieve the original text
+    const originalText = textarea.dataset.originalText;
+    console.log("Original text to restore:", originalText);
+
+    const userMessage = new UserMessage(originalText);
+    const originalMessageElement = userMessage.renderWithEditButton(() => {
+      console.log("Edit button clicked, re-enabling editing...");
+      this.enableEditing(messageContainer);
+    });
+
+    messageContainer.innerHTML = ""; // Clear existing content
+    messageContainer.appendChild(originalMessageElement);
+
+    this.editingMessageElement = null; // Clear editing reference
+    console.log("Edit canceled and message restored.");
   }
 
   removeSubsequentMessages(messageContainer) {
+    console.log(
+      "Removing subsequent messages for container:",
+      messageContainer
+    );
+
     const messagesList = document.getElementById(this.messagesContainerId);
     let currentMessage = messageContainer.nextElementSibling;
 
     while (currentMessage) {
+      console.log("Removing message:", currentMessage);
       const nextMessage = currentMessage.nextElementSibling;
       messagesList.removeChild(currentMessage);
       currentMessage = nextMessage;
     }
+
+    console.log("Subsequent messages removed successfully.");
   }
 
-  saveChat() {
-    const messagesContainer = document.getElementById(this.messagesContainerId);
-    let chatContent = "";
-    let aiResponseIndex = 0; // Track raw AI responses
-  
-    messagesContainer
-      .querySelectorAll(".message-container")
-      .forEach((container, index) => {
-        if (index % 2 === 0) {
-          // User message
-          const userMessageElement = container.querySelector(".user-message");
-          const userMessage = userMessageElement
-            ? userMessageElement.textContent.trim()
-            : "";
-          chatContent += `User: ${userMessage}\n`;
-        } else {
-          // AI message
-          const rawAIResponse = this.rawResponses[aiResponseIndex++] || "";
-          chatContent += `AI (Raw Response): ${rawAIResponse}\n`;
-        }
-      });
-  
-    const blob = new Blob([chatContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-  
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "chat.txt";
-    link.click();
-  
-    URL.revokeObjectURL(url);
-  }
-  
+  extractMermaidDiagramsAndText(response) {
+    const mermaidCodeRegex =
+      /(?:```mermaid\n([\s\S]*?)```|(?:^|\n)(flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|mindmap|timeline|zenuml)[\s\S]*?(?=\n\S|\n$))/g;
+    const diagrams = [];
+    let remainingText = response;
 
-  clearChat() {
-    const messagesContainer = document.getElementById(this.messagesContainerId);
-    messagesContainer.innerHTML = ""; // Clear all messages
+    let match;
+    while ((match = mermaidCodeRegex.exec(response)) !== null) {
+      diagrams.push(match[1] || match[0].trim());
+      remainingText = remainingText.replace(match[0], "").trim();
+    }
+
+    return { diagrams, remainingText };
+  }
+
+  scrollToBottom() {
+    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
   }
 }
 
-// Usage :
-const chatApp = new ChatApp({
+// Initialize the ChatApp
+const chatApp = new Chat({
   apiURL: "http://127.0.0.1:8000/chat/",
   model: "llama3.1",
   inputBoxId: "inputBox",
