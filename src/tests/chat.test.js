@@ -57,7 +57,7 @@ test("Chat initializes with correct defaults", () => {
   expect(screen.getByText("Send")).toBeInTheDocument();
 });
 
-test("User message is sent and rendered", () => {
+test("User message is sent and rendered with proper structure", () => {
   const chat = new Chat();
   const inputBox = screen.getByRole("textbox");
   const sendButton = screen.getByText("Send");
@@ -67,7 +67,13 @@ test("User message is sent and rendered", () => {
 
   const userMessage = screen.getByText("Hello, AI!");
   expect(userMessage).toBeInTheDocument();
-  expect(userMessage.closest(".user-message")).not.toBeNull();
+
+  const container = userMessage.closest(".user-message-container");
+  expect(container).not.toBeNull();
+
+  const editButton = container.querySelector(".edit-button");
+  expect(editButton).toBeInTheDocument();
+  expect(editButton.textContent).toBe("Edit");
 });
 
 test("AI response is rendered after user message", async () => {
@@ -105,7 +111,7 @@ test("Chat messages can be cleared", () => {
   expect(screen.queryByText("Message 2")).toBeNull();
 });
 
-test("Mermaid diagram is rendered correctly", async () => {
+test("AI response with Mermaid diagram renders correctly", async () => {
   fetch.mockResolvedValueOnce({
     json: () =>
       Promise.resolve({
@@ -121,12 +127,15 @@ test("Mermaid diagram is rendered correctly", async () => {
   fireEvent.click(sendButton);
 
   await waitFor(() => {
-    const mermaidContainer = screen.getByText(
-      (content, element) =>
-        element.className.includes("mermaid") && content.includes("A-->B")
+    const mermaidContainer = screen.getByText((content, element) =>
+      element.className.includes("mermaid")
     );
     expect(mermaidContainer).toBeInTheDocument();
-    expect(mermaidContainer.closest(".mermaid")).not.toBeNull();
+    expect(mermaidContainer.textContent).toContain("A-->B");
+    expect(global.mermaid.init).toHaveBeenCalledWith(
+      undefined,
+      mermaidContainer
+    );
   });
 });
 
@@ -161,4 +170,51 @@ test("File upload rejects unsupported file types", async () => {
   await expect(
     chat.handleFileUpload({ target: { files: [mockFile] } })
   ).rejects.toThrow("Unsupported file type");
+});
+
+test("Save button creates a downloadable file", () => {
+  const chat = new Chat();
+  const saveButton = screen.getByText("Save");
+
+  // Mock URL.createObjectURL
+  const mockCreateObjectURL = jest.fn(() => "mocked-url");
+  global.URL.createObjectURL = mockCreateObjectURL;
+
+  // Mock URL.revokeObjectURL
+  const mockRevokeObjectURL = jest.fn();
+  global.URL.revokeObjectURL = mockRevokeObjectURL;
+
+  // Mock the anchor element and its click method
+  const mockClick = jest.fn();
+  const originalCreateElement = document.createElement;
+  jest.spyOn(document, "createElement").mockImplementation((tag) => {
+    const element = originalCreateElement.call(document, tag);
+    if (tag === "a") {
+      element.click = mockClick;
+    }
+    return element;
+  });
+
+  // Add a user message
+  const inputBox = screen.getByRole("textbox");
+  const sendButton = screen.getByText("Send");
+  fireEvent.change(inputBox, { target: { value: "Message for saving" } });
+  fireEvent.click(sendButton);
+
+  // Trigger save
+  fireEvent.click(saveButton);
+
+  // Verify Blob creation and URL creation
+  expect(mockCreateObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+
+  // Verify anchor click
+  expect(mockClick).toHaveBeenCalledTimes(1);
+
+  // Verify URL.revokeObjectURL is called
+  expect(mockRevokeObjectURL).toHaveBeenCalledWith("mocked-url");
+
+  // Cleanup mocks
+  document.createElement.mockRestore();
+  global.URL.createObjectURL.mockRestore();
+  global.URL.revokeObjectURL.mockRestore();
 });
