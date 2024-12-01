@@ -54,17 +54,20 @@ test("Chat initializes with correct defaults", () => {
   expect(chat.model).toBe("llama3.1");
   expect(chat.inputBoxId).toBe("inputBox");
   expect(chat.messagesContainerId).toBe("messages");
-  expect(screen.getByText("Send")).toBeInTheDocument();
+  expect(chat.messagesContainer).toBeInstanceOf(HTMLElement);
 });
 
 test("User message is sent and rendered with proper structure", () => {
+  // Setup
   const chat = new Chat();
   const inputBox = screen.getByRole("textbox");
   const sendButton = screen.getByText("Send");
 
+  // Action
   fireEvent.change(inputBox, { target: { value: "Hello, AI!" } });
   fireEvent.click(sendButton);
 
+  // Assertion
   const userMessage = screen.getByText("Hello, AI!");
   expect(userMessage).toBeInTheDocument();
 
@@ -91,6 +94,11 @@ test("AI response is rendered after user message", async () => {
   await waitFor(() => {
     const aiMessage = screen.getByText("Hello, human!");
     expect(aiMessage.closest(".ai-message")).not.toBeNull();
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(chat.apiURL),
+      expect.any(Object)
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -109,6 +117,15 @@ test("Chat messages can be cleared", () => {
 
   expect(screen.queryByText("Message 1")).toBeNull();
   expect(screen.queryByText("Message 2")).toBeNull();
+});
+
+test("Clearing chat with no messages does nothing", () => {
+  const chat = new Chat();
+  const clearButton = screen.getByText("Clear");
+
+  fireEvent.click(clearButton);
+
+  expect(chat.messagesContainer.innerHTML).toBe(""); // No errors or residual content
 });
 
 test("AI response with Mermaid diagram renders correctly", async () => {
