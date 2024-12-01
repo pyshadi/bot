@@ -91,10 +91,15 @@ async def chat(request: Request, body: ChatRequest):
             Message(content=body.user_input, role="user")
         )
 
-        result = await client.chat(
-            model=body.model,
-            messages=conversation_histories[body.session_id]
-        )
+        try:
+            result = await client.chat(
+                model=body.model,
+                messages=conversation_histories[body.session_id]
+            )
+        except Exception as e:
+            logger.error(f"Error while calling client.chat: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to process the chat request.")
+
 
         # response content
         chat_response = result.get('message', {}).get('content', "No response generated.")
