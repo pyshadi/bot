@@ -57,6 +57,9 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
 
+SUPPORTED_MODELS = ["llama3.1", "llama3"]
+MAX_INPUT_LENGTH = 10000
+
 @app.get("/")
 async def read_index():
     static_dir = Path("static")
@@ -68,9 +71,18 @@ async def read_index():
 
 @app.post("/chat/", response_model=ChatResponse)
 @limiter.limit("5/minute")
-async def chat(request: Request, body: ChatRequest):  # Accept Request and body explicitly
+async def chat(request: Request, body: ChatRequest):
     try:
-        # Retrieve or initialize conversation history for the session
+        if body.model not in SUPPORTED_MODELS:
+            raise HTTPException(status_code=400, detail="Unsupported model name.")
+        
+        if not body.user_input.strip():
+            raise HTTPException(status_code=400, detail="User input cannot be empty.")
+        
+        if len(body.user_input) > MAX_INPUT_LENGTH:
+            raise HTTPException(status_code=413, detail="Input is too large.")
+
+        # Retrieve / initialize conversation history for the session
         if body.session_id not in conversation_histories:
             conversation_histories[body.session_id] = []
 
@@ -79,25 +91,25 @@ async def chat(request: Request, body: ChatRequest):  # Accept Request and body 
             Message(content=body.user_input, role="user")
         )
 
-        # Send conversation history to LLaMA server
         result = await client.chat(
             model=body.model,
             messages=conversation_histories[body.session_id]
         )
 
-        # Extract response content
+        # response content
         chat_response = result.get('message', {}).get('content', "No response generated.")
 
-        # Add the model's response to conversation history
         conversation_histories[body.session_id].append(
             Message(content=chat_response, role="assistant")
         )
 
         return ChatResponse(response=chat_response)
 
+    except HTTPException as e:
+        logger.error(f"HTTP Exception: {e.detail}")
+        raise e
     except Exception as e:
         logger.exception("An error occurred while processing the chat request.")
-        # generic error message to user
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred. Please try again later."
