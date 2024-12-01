@@ -319,19 +319,12 @@ class Chat {
         const rawResponse = data.response; // Save raw response
         this.rawResponses.push(rawResponse);
 
-        // Extract diagrams and text from the response
         const { diagrams, remainingText } =
           this.extractMermaidDiagramsAndText(rawResponse);
 
-        // Render remaining text
-        if (remainingText) {
-          const textContainer = document.createElement("div");
-          textContainer.className = "ai-message";
-          textContainer.innerHTML = md.render(remainingText);
-          aiMessageElement.appendChild(textContainer);
-        }
+        const aiMessage = new AiMessage(remainingText);
+        aiMessageElement.appendChild(aiMessage.render());
 
-        // Render Mermaid diagrams
         diagrams.forEach((diagram) => {
           const mermaidContainer = document.createElement("div");
           mermaidContainer.className = "mermaid";
