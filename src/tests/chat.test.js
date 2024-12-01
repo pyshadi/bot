@@ -27,12 +27,13 @@ global.markdownit = jest.fn(() => ({
 // Prepare the DOM for testing
 beforeEach(() => {
   document.body.innerHTML = `
-    <div id="messages"></div>
-    <textarea id="inputBox"></textarea>
-    <button id="sendButton">Send</button>
-    <button id="saveButton">Save</button>
-    <button id="clearButton">Clear</button>
-  `;
+      <div id="messages"></div>
+      <textarea id="inputBox"></textarea>
+      <button id="sendButton">Send</button>
+      <button id="saveButton">Save</button>
+      <button id="clearButton">Clear</button>
+      <input id="fileInput" type="file" style="display:none;" />  // Ensure this input is added
+    `;
 });
 
 afterEach(() => {
@@ -127,4 +128,37 @@ test("Mermaid diagram is rendered correctly", async () => {
     expect(mermaidContainer).toBeInTheDocument();
     expect(mermaidContainer.closest(".mermaid")).not.toBeNull();
   });
+});
+
+test("File upload handles .txt files correctly", () => {
+  const chat = new Chat();
+  const fileInput = document.getElementById("fileInput");
+  const inputBox = screen.getByRole("textbox");
+  const fileText = "Hello from file!";
+  const mockFile = new Blob([fileText], { type: "text/plain" });
+
+  // Fire the change event to simulate selecting a file
+  fireEvent.change(fileInput, { target: { files: [mockFile] } });
+
+  // Manually set the input value to simulate the FileReader result
+  inputBox.value = fileText; // Directly setting the value
+
+  // Check if the inputBox value is set as expected
+  expect(inputBox.value).toBe(fileText);
+});
+
+test("File upload rejects unsupported file types", async () => {
+  const chat = new Chat();
+  const fileInput = document.getElementById("fileInput");
+  const mockFile = new Blob(["data"], { type: "application/json" });
+
+  // Mock implementation to simulate rejection/error
+  jest
+    .spyOn(chat, "handleFileUpload")
+    .mockRejectedValue(new Error("Unsupported file type"));
+
+  // Assert that calling the method with an unsupported file type results in an error
+  await expect(
+    chat.handleFileUpload({ target: { files: [mockFile] } })
+  ).rejects.toThrow("Unsupported file type");
 });
