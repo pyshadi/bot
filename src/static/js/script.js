@@ -501,3 +501,5 @@ const chatApp = new Chat({
   inputBoxId: "inputBox",
   messagesContainerId: "messages",
 });
+
+export default Chat; // for testing
