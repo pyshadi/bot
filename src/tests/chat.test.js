@@ -27,13 +27,13 @@ global.markdownit = jest.fn(() => ({
 // Prepare the DOM for testing
 beforeEach(() => {
   document.body.innerHTML = `
-      <div id="messages"></div>
-      <textarea id="inputBox"></textarea>
-      <button id="sendButton">Send</button>
-      <button id="saveButton">Save</button>
-      <button id="clearButton">Clear</button>
-      <input id="fileInput" type="file" style="display:none;" />  // Ensure this input is added
-    `;
+    <div id="messages"></div>
+    <textarea id="inputBox" aria-label="User input" rows="2" placeholder="Type your message here..."></textarea>
+    <button id="sendButton">Send</button>
+    <button id="saveButton">Save</button>
+    <button id="clearButton">Clear</button>
+    <input id="fileInput" type="file" style="display:none;" />
+  `;
 });
 
 afterEach(() => {
@@ -234,4 +234,74 @@ test("Save button creates a downloadable file", () => {
   document.createElement.mockRestore();
   global.URL.createObjectURL.mockRestore();
   global.URL.revokeObjectURL.mockRestore();
+});
+
+test("Editing a user message updates the content and fetches a new AI response", async () => {
+  const chat = new Chat();
+  const inputBox = screen.getByRole("textbox", { name: "User input" }); // Query by aria-label
+  const sendButton = screen.getByText("Send");
+
+  fireEvent.change(inputBox, { target: { value: "Initial message" } });
+  fireEvent.click(sendButton);
+
+  const editButton = screen.getByText("Edit");
+  fireEvent.click(editButton);
+
+  const textarea = screen.getByRole("textbox", { name: "Edit message" }); // Query editable textarea
+  fireEvent.change(textarea, { target: { value: "Updated message" } });
+
+  fireEvent.keyDown(textarea, { key: "Enter", code: "Enter" });
+
+  await waitFor(() => {
+    expect(screen.getByText("Updated message")).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(chat.apiURL),
+      expect.any(Object)
+    );
+  });
+});
+
+test("Canceling an edit restores the original message", () => {
+  const chat = new Chat();
+  const inputBox = screen.getByRole("textbox", { name: "User input" });
+  const sendButton = screen.getByText("Send");
+
+  fireEvent.change(inputBox, { target: { value: "Message to edit" } });
+  fireEvent.click(sendButton);
+
+  const editButton = screen.getByText("Edit");
+  fireEvent.click(editButton);
+
+  const textarea = screen.getByRole("textbox", { name: "Edit message" });
+  fireEvent.change(textarea, { target: { value: "Edited message" } });
+
+  fireEvent.blur(textarea); // Simulates losing focus
+
+  expect(screen.getByText("Message to edit")).toBeInTheDocument();
+});
+
+test("Multi-line user input renders correctly", () => {
+  const chat = new Chat();
+  const inputBox = document.getElementById("inputBox"); // Fallback query
+  const sendButton = screen.getByText("Send");
+
+  const multilineInput = `Line 1
+Line 2
+Line 3`;
+
+  fireEvent.change(inputBox, { target: { value: multilineInput } });
+  fireEvent.click(sendButton);
+
+  const userMessages = screen.getAllByText((content, element) => {
+    return (
+      element.textContent.includes("Line 1") &&
+      element.textContent.includes("Line 2") &&
+      element.textContent.includes("Line 3")
+    );
+  });
+
+  expect(userMessages.length).toBeGreaterThan(0); // Ensure at least one match
+  expect(userMessages[0].textContent).toContain("Line 1");
+  expect(userMessages[0].textContent).toContain("Line 2");
+  expect(userMessages[0].textContent).toContain("Line 3");
 });

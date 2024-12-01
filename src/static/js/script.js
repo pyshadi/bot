@@ -369,6 +369,7 @@ class Chat {
     console.log("Current text in the message:", currentText);
 
     const textarea = document.createElement("textarea");
+    textarea.setAttribute("aria-label", "Edit message"); // Add label for accessibility
     textarea.value = currentText;
     textarea.className = "editable-textarea";
     textarea.rows = currentText.split("\n").length;
