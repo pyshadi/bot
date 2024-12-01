@@ -1,14 +1,20 @@
 // Initialize markdown-it and mermaid globally
 const md = window.markdownit({
   highlight: function (str, lang) {
+    console.log("Highlighting code block:", { str, lang }); // Debug log
     if (lang && Prism.languages[lang]) {
       try {
         return Prism.highlight(str, Prism.languages[lang], lang);
-      } catch (__) {}
+      } catch (error) {
+        console.error("Error highlighting code block:", error);
+      }
+    } else {
+      console.warn("Language not found or unsupported:", lang);
     }
-    return ""; // default escaping
+    return ""; // Return empty if no highlighting
   },
 });
+
 mermaid.initialize({ startOnLoad: false }); // prevent render on load
 
 class Message {
