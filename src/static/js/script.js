@@ -324,11 +324,28 @@ class Chat {
         const aiMessage = new AiMessage(rawResponse);
 
         diagrams.forEach((diagram) => {
+          const diagramContainer = document.createElement("div");
+          diagramContainer.className = "diagram-container";
+
           const mermaidContainer = document.createElement("div");
           mermaidContainer.className = "mermaid";
           mermaidContainer.textContent = diagram;
-          aiMessageElement.appendChild(mermaidContainer);
+          diagramContainer.appendChild(mermaidContainer);
+
           mermaid.init(undefined, mermaidContainer);
+
+          // Add Save Button for SVG
+          const saveContainer = document.createElement("div");
+          saveContainer.className = "svg-button";
+
+          const saveAsSVGButton = document.createElement("button");
+          saveAsSVGButton.textContent = "SVG";
+          saveAsSVGButton.onclick = () =>
+            this.saveMermaidAsImage(mermaidContainer, "svg");
+          saveContainer.appendChild(saveAsSVGButton);
+
+          diagramContainer.appendChild(saveContainer);
+          aiMessageElement.appendChild(diagramContainer);
         });
 
         aiMessageElement.appendChild(aiMessage.render());
@@ -339,6 +356,37 @@ class Chat {
         aiMessageElement.innerHTML =
           "There was an error processing your request.";
       });
+  }
+
+  async saveMermaidAsImage(mermaidElement, format) {
+    const svgElement = mermaidElement.querySelector("svg");
+
+    if (!svgElement) {
+      console.error("No SVG element found in the Mermaid container.");
+      alert("No diagram found to save.");
+      return;
+    }
+
+    if (format === "svg") {
+      try {
+        // Serialize the SVG to a string and save it
+        const svgData = new XMLSerializer().serializeToString(svgElement);
+        const blob = new Blob([svgData], {
+          type: "image/svg+xml;charset=utf-8",
+        });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "diagram.svg";
+        link.click();
+        URL.revokeObjectURL(link.href);
+        console.log("SVG successfully saved.");
+      } catch (error) {
+        console.error("Error saving SVG:", error);
+        alert("Failed to save the diagram as SVG. Please try again.");
+      }
+    } else {
+      console.error(`Unsupported format: ${format}`);
+    }
   }
 
   createMessageContainer() {

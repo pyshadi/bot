@@ -59,9 +59,8 @@ body {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  width: 40px; /* Optional: Makes buttons square */
-  height: 40px; /* Optional: Matches width for square buttons */
+  width: 40px;
+  height: 40px;
 }
 
 .button-group button:hover {
@@ -104,6 +103,7 @@ body {
   max-width: 75%;
   white-space: pre-wrap;
   word-wrap: break-word;
+  font-size: 14px;
 }
 
 .user-message {
@@ -170,7 +170,6 @@ body {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
   margin-left: 5px;
 }
 
@@ -193,7 +192,6 @@ body {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
   margin-left: 5px;
 }
 
@@ -210,7 +208,6 @@ body {
   border: none;
   color: #106258;
   cursor: pointer;
-  font-size: 12px;
   margin-right: 5px;
 }
 
@@ -234,15 +231,49 @@ body {
   margin: 5px 0;
 }
 
+.diagram-container {
+  position: relative;
+  margin: 10px 0;
+  padding: 5px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 .mermaid {
   margin: 20px 0;
-  font-size: 16px;
+  font-size: 12px;
   max-width: 100%;
   overflow-x: auto;
   border: 1px solid #ddd;
   padding: 10px;
   background-color: #f9f9f9;
   border-radius: 5px;
+}
+
+.svg-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 5px;
+  border-radius: 5px;
+  z-index: 10; /* Ensure the buttons stay above the diagram */
+}
+
+.svg-button button {
+  padding: 6px 10px;
+  font-size: 10px;
+  color: white;
+  background-color: #000000;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.svg-button button:hover {
+  background-color: #1f1f1f;
 }
 
 .spinner {
