@@ -120,6 +120,13 @@ body {
   word-wrap: break-word;
 }
 
+.ai-message ol,
+.ai-message ul {
+  margin: 0;
+  padding-left: 10px;
+  list-style-position: inside;
+}
+
 /* Input section */
 .input-wrapper {
   display: flex;
@@ -132,6 +139,7 @@ body {
   display: flex;
   align-items: center;
   width: 100%;
+  flex-direction: row-reverse; /* Adjusts the direction */
 }
 
 #inputBox {
@@ -139,11 +147,15 @@ body {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  margin-right: 10px;
+  margin-left: 10px; /* Adjust for spacing from buttons */
   resize: vertical;
-
   overflow-y: auto;
   font-size: 14px;
+}
+
+#sendButton,
+#attachButton {
+  margin: 0; /* Reset margins */
 }
 
 /* Send Button */
