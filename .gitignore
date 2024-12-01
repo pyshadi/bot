@@ -7,3 +7,54 @@ __pycache__/
 
 # Logs and other temporary files
 *.log
+*.out
+*.err
+*.swp
+*.swo
+
+# Test-related artifacts
+coverage/
+.nyc_output/
+jest/
+test-results.xml
+.junit/
+reports/
+*.lcov
+*.lcov.info
+*.html
+*.json
+
+# Ignore snapshots for testing libraries
+*.snap
+
+# Ignore Node.js dependencies
+node_modules/
+
+# Ignore build and dist directories
+build/
+dist/
+
+# Ignore temporary files created by editors and IDEs
+*.vscode/
+.idea/
+.DS_Store
+*.bak
+*.tmp
+
+# Ignore environment variable files
+.env
+.env.*
+
+# Ignore lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Ignore Babel and Webpack artifacts
+.babelrc
+webpack.config.js
+.parcel-cache/
+
+# Ignore miscellaneous system files
+Thumbs.db
+desktop.ini
