@@ -321,9 +321,7 @@ class Chat {
 
         const { diagrams, remainingText } =
           this.extractMermaidDiagramsAndText(rawResponse);
-
-        const aiMessage = new AiMessage(remainingText);
-        aiMessageElement.appendChild(aiMessage.render());
+        const aiMessage = new AiMessage(rawResponse);
 
         diagrams.forEach((diagram) => {
           const mermaidContainer = document.createElement("div");
@@ -333,6 +331,7 @@ class Chat {
           mermaid.init(undefined, mermaidContainer);
         });
 
+        aiMessageElement.appendChild(aiMessage.render());
         Prism.highlightAll(); // Apply syntax highlighting
       })
       .catch((error) => {
