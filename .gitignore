@@ -22,7 +22,7 @@ reports/
 *.lcov
 *.lcov.info
 *.html
-*.json
+#*.json
 
 # Ignore snapshots for testing libraries
 *.snap
@@ -46,7 +46,7 @@ dist/
 .env.*
 
 # Ignore lock files
-package-lock.json
+#package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
