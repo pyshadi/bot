@@ -56,7 +56,6 @@ body {
   margin-left: auto; /* buttons pushed to the right */
 }
 
-
 .messages {
   flex-grow: 1;
   padding: 10px;
@@ -170,18 +169,28 @@ button i {
 }
 
 .diagram-container {
-  width: 100%;
+  width: 90%;
   position: relative;
-  margin: 10px 0;
+  margin: 10px auto;
   padding: 10px;
   background-color: #ffffff;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.diagram-container:hover {
+  border-color: #38615c;
+}
+
+.diagram-container:hover .save-svg-button,
+.save-svg-button:hover {
+  color: #38615c;
 }
 
 .mermaid {
-  margin: 10px 0;
   padding: 10px;
   background-color: #f9f9f9;
   border: 1px solid #ddd;
@@ -263,21 +272,27 @@ button i {
   border-radius: 4px;
   position: relative;
   overflow-x: auto;
+  display: inline-block;
+  max-width: 95%;
+  transition: border-color 0.2s ease-in-out;
 }
 
+.code-block-wrapper:hover {
+  border-color: #38615c;
+}
 .code-block-wrapper code {
-  font-family: 'Courier New', Courier, monospace;
+  font-family: "Courier New", Courier, monospace;
   color: #171717;
   font-size: 14px;
   display: block;
-  white-space: pre; /* Preserve formatting */
+  padding-right: 30px;
+  white-space: pre;
 }
 
 .copy-button {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  padding: 4px 8px;
+  top: 2px;
+  right: 2px;
   font-size: 16px;
   color: #000000;
   background-color: transparent;
@@ -292,8 +307,8 @@ button i {
 .copy-button i {
   font-size: 16px;
 }
+
+.code-block-wrapper:hover .copy-button,
 .copy-button:hover {
   color: #38615c;
-  transform: scale(1.2);
-  background-color: transparent;
 }
