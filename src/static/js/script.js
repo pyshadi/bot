@@ -1,7 +1,7 @@
 // Initialize markdown-it and mermaid globally
 const md = window.markdownit({
   highlight: function (str, lang) {
-    console.log("Highlighting code block:", { str, lang }); // Debug log
+    //console.log("Highlighting code block:", { str, lang }); // Debug log
     if (lang && Prism.languages[lang]) {
       try {
         return Prism.highlight(str, Prism.languages[lang], lang);
@@ -350,12 +350,43 @@ class Chat {
 
         aiMessageElement.appendChild(aiMessage.render());
         Prism.highlightAll(); // Apply syntax highlighting
+
+        // Add copy button to code blocks
+        this.addCopyButtons(aiMessageElement);
       })
       .catch((error) => {
         console.error("Error fetching AI response:", error);
         aiMessageElement.innerHTML =
           "There was an error processing your request.";
       });
+  }
+
+  addCopyButtons(parentElement) {
+    const codeBlocks = parentElement.querySelectorAll("pre > code");
+    codeBlocks.forEach((codeBlock) => {
+      const copyButton = document.createElement("button");
+      copyButton.className = "copy-button";
+
+      const icon = document.createElement("i");
+      icon.className = "fas fa-copy"; // Font Awesome icon class for copy
+      copyButton.appendChild(icon);
+
+      copyButton.onclick = () => {
+        navigator.clipboard
+          .writeText(codeBlock.textContent)
+          .then(() => {
+            icon.className = "fas fa-check"; // Change icon to a checkmark
+            setTimeout(() => (icon.className = "fas fa-copy"), 2000); // Reset to copy icon
+          })
+          .catch((err) => {
+            console.error("Error copying to clipboard:", err);
+          });
+      };
+
+      const wrapper = codeBlock.closest("pre");
+      wrapper.style.position = "relative"; // relative to the block
+      wrapper.appendChild(copyButton);
+    });
   }
 
   async saveMermaidAsImage(mermaidElement, format) {
