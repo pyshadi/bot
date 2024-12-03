@@ -24,7 +24,7 @@ global.markdownit = jest.fn(() => ({
   render: jest.fn((text) => `<p>${text}</p>`),
 }));
 
-// Prepare the DOM for testing
+// Prepare DOM
 beforeEach(() => {
   document.body.innerHTML = `
     <div id="messages"></div>
@@ -46,7 +46,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-// Test cases
+// Tests
 
 test("Chat initializes with correct defaults", () => {
   const chat = new Chat({
@@ -129,7 +129,7 @@ test("Clearing chat with no messages does nothing", () => {
 
   fireEvent.click(clearButton);
 
-  expect(chat.messagesContainer.innerHTML).toBe(""); // No errors or residual content
+  expect(chat.messagesContainer.innerHTML).toBe(""); // No errors
 });
 
 test("AI response includes Mermaid diagram content", async () => {
@@ -148,7 +148,7 @@ test("AI response includes Mermaid diagram content", async () => {
   fireEvent.click(sendButton);
 
   await waitFor(() => {
-    // Ensure Mermaid container is rendered
+    // Ensure mermaid container is rendered
     const mermaidContainer = screen.getByText((content, element) => {
       return (
         element.className.includes("mermaid") &&
@@ -166,13 +166,13 @@ test("File upload handles .txt files correctly", () => {
   const fileText = "Hello from file!";
   const mockFile = new Blob([fileText], { type: "text/plain" });
 
-  // Fire the change event to simulate selecting a file
+  // Fire change event to simulate selecting a file
   fireEvent.change(fileInput, { target: { files: [mockFile] } });
 
   // Manually set the input value to simulate the FileReader result
   inputBox.value = fileText; // Directly setting the value
 
-  // Check if the inputBox value is set as expected
+  // Check if inputBox value is set as expected
   expect(inputBox.value).toBe(fileText);
 });
 
@@ -181,12 +181,12 @@ test("File upload rejects unsupported file types", async () => {
   const fileInput = document.getElementById("fileInput");
   const mockFile = new Blob(["data"], { type: "application/json" });
 
-  // Mock implementation to simulate rejection/error
+  // Mock implementation to simulate error
   jest
     .spyOn(chat, "handleFileUpload")
     .mockRejectedValue(new Error("Unsupported file type"));
 
-  // Assert that calling the method with an unsupported file type results in an error
+  // Assert calling the method with unsupported file type results in error
   await expect(
     chat.handleFileUpload({ target: { files: [mockFile] } })
   ).rejects.toThrow("Unsupported file type");
@@ -211,10 +211,9 @@ test("Editing a user message updates the content and fetches a new AI response",
   fireEvent.change(inputBox, { target: { value: "Initial message" } });
   fireEvent.click(sendButton);
 
-  // Ensure no interfering highlights
   chat.clearHighlights();
 
-  // Locate the edit button in the correct container
+  // Locate edit button in correct container
   const userMessageContainer = screen
     .getByText("Initial message")
     .closest(".user-message-container");
@@ -227,7 +226,7 @@ test("Editing a user message updates the content and fetches a new AI response",
   fireEvent.change(textarea, { target: { value: "Updated message" } });
   fireEvent.keyDown(textarea, { key: "Enter", code: "Enter" });
 
-  // Assert the updated content and AI response
+  // Assert updated content and ai response
   await waitFor(() => {
     expect(screen.getByText("Updated message")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
@@ -246,7 +245,6 @@ test("Canceling an edit restores the original message", () => {
   fireEvent.change(inputBox, { target: { value: "Message to edit" } });
   fireEvent.click(sendButton);
 
-  // Ensure no interfering highlights
   chat.clearHighlights();
 
   // Locate the edit button in the correct container
@@ -261,16 +259,16 @@ test("Canceling an edit restores the original message", () => {
   const textarea = screen.getByRole("textbox", { name: "Edit message" });
   fireEvent.change(textarea, { target: { value: "Edited message" } });
 
-  // Simulate canceling (blur)
+  // Simulate canceling
   fireEvent.blur(textarea);
 
-  // Assert the original content is restored
+  // Assert original content is restored
   expect(screen.getByText("Message to edit")).toBeInTheDocument();
 });
 
 test("Multi-line user input renders correctly", () => {
   const chat = new Chat();
-  const inputBox = document.getElementById("inputBox"); // Fallback query
+  const inputBox = document.getElementById("inputBox"); // fallback query
   const sendButton = screen.getByText("Send");
 
   const multilineInput = `Line 1
@@ -288,7 +286,7 @@ Line 3`;
     );
   });
 
-  expect(userMessages.length).toBeGreaterThan(0); // Ensure at least one match
+  expect(userMessages.length).toBeGreaterThan(0); // at least one match
   expect(userMessages[0].textContent).toContain("Line 1");
   expect(userMessages[0].textContent).toContain("Line 2");
   expect(userMessages[0].textContent).toContain("Line 3");
@@ -326,10 +324,9 @@ test("Search functionality highlights matches and navigates results", () => {
   // Cycle again to test looping
   chat.nextMatch();
   chat.nextMatch();
-  expect(scrollMock).toHaveBeenCalledTimes(4); // Total matches in the chat
+  expect(scrollMock).toHaveBeenCalledTimes(4); // Total matches
 
   // Reset search
   fireEvent.blur(searchInput);
-  expect(chat.searchResults.length).toBe(0); // Highlights cleared
+  expect(chat.searchResults.length).toBe(0); // Highligts cleared
 });
-

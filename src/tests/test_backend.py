@@ -9,12 +9,12 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from app import app
 
-# Reusable pytest fixture for TestClient
+# Fixture for TestClient
 @pytest.fixture
 def client():
     return TestClient(app)
 
-# Mock data for testing
+# Mock data
 mock_chat_request = {
     "session_id": "test-session",
     "model": "llama3.1",
@@ -23,7 +23,7 @@ mock_chat_request = {
 
 ### Tests ###
 
-# Test the root endpoint
+# Test root endpoint
 def test_read_index(client):
     response = client.get("/")
     assert response.status_code == 200
@@ -35,16 +35,16 @@ def test_chat_endpoint_success(client):
     assert response.status_code == 200
     assert "response" in response.json()
 
-# Test Invalid session_id
+# Test invalid session_id
 def test_chat_invalid_session_id(client):
     invalid_request = {
         "model": "llama3.1",
         "user_input": "Hello!",
-    }  # Missing session_id
+    }  # missing session_id
     response = client.post("/chat/", json=invalid_request)
     assert response.status_code == 422  # missing fields
 
-# Test Unsupported model name
+# Test unsupported model name
 def test_chat_unsupported_model(client):
     unsupported_model_request = {
         "session_id": "test-session",
@@ -54,7 +54,7 @@ def test_chat_unsupported_model(client):
     response = client.post("/chat/", json=unsupported_model_request)
     assert response.status_code == 400
 
-# Test Empty user_input
+# Test empty user_input
 def test_chat_empty_input(client):
     empty_input_request = {
         "session_id": "test-session",
@@ -81,7 +81,7 @@ def test_static_index(client):
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
 
-# Test non-existent file
+# Test non existent file
 def test_static_nonexistent(client):
     response = client.get("/static/nonexistent-file.js")
     assert response.status_code == 404  # File not found
@@ -89,7 +89,7 @@ def test_static_nonexistent(client):
 # Test rate limiting
 def test_chat_rate_limit(client):
     time.sleep(60)
-    for _ in range(6):  # Send more than 5 requests in a minute
+    for _ in range(6):  # Send more than 5 requests in minute
         response = client.post("/chat/", json=mock_chat_request)
         time.sleep(1)
-    assert response.status_code == 429  # Too Many Requests
+    assert response.status_code == 429  # Too many Requests
