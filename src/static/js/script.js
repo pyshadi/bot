@@ -374,6 +374,7 @@ class Chat {
 
   addCopyButtons(parentElement) {
     const codeBlocks = parentElement.querySelectorAll("pre > code");
+
     codeBlocks.forEach((codeBlock) => {
       const copyButton = document.createElement("button");
       copyButton.className = "copy-button";
@@ -395,8 +396,24 @@ class Chat {
       };
 
       const wrapper = codeBlock.closest("pre");
-      wrapper.style.position = "relative"; // relative to the block
+      wrapper.classList.add("code-block-wrapper");
+
+      // Add relative positioning to the wrapper
+      wrapper.style.position = "relative";
       wrapper.appendChild(copyButton);
+
+      // Update the position of the button within the wrapper
+      const updateButtonPosition = () => {
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const scrollOffset = wrapper.scrollLeft; // Horizontal scroll offset of the wrapper
+
+        copyButton.style.top = `8px`; // Fixed distance from the top of the wrapper
+        copyButton.style.right = `${8 - scrollOffset}px`; // Adjust for the horizontal scroll
+      };
+
+      // Update the button's position initially and on wrapper scroll
+      wrapper.addEventListener("scroll", updateButtonPosition);
+      updateButtonPosition();
     });
   }
 
