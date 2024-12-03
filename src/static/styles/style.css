@@ -54,8 +54,29 @@ body {
   display: flex;
   gap: 8px;
   margin-left: auto; /* buttons pushed to the right */
+  position: relative;
 }
 
+.search-input {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 100%;
+  margin-right: 8px;
+  padding: 5px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  z-index: 10;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.highlight {
+  background-color: #ffeeba;
+  color: #000;
+  font-weight: bold;
+}
 .messages {
   flex-grow: 1;
   padding: 10px;
