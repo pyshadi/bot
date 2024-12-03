@@ -1,4 +1,4 @@
-/* Reset */
+/* Reset and global styles */
 * {
   margin: 0;
   padding: 0;
@@ -12,17 +12,16 @@ body {
   align-items: center;
   flex-direction: column;
   height: 100vh;
-  margin: 0;
   background-color: #f5f5f5;
 }
 
 .chat-container {
   width: 100%;
   max-width: 1000px;
+  background-color: #ffffff;
   border: 1px solid #ddd;
   border-radius: 8px;
-  background-color: white;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -31,43 +30,31 @@ body {
 /* Header section */
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between; /* Push content to the edges */
   padding: 10px 20px;
   border-bottom: 1px solid #ddd;
   background-color: #ffffff;
+}
+
+.llama-icon {
+  display: inline-block;
+  font-size: 25px;
+  color: #000000;
+  line-height: 1;
 }
 
 .header h1 {
   font-size: 20px;
   font-weight: bold;
   color: #333;
+  margin-left: 10px;
 }
 
 .button-group {
   display: flex;
-  gap: 5px;
-}
-
-.button-group button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  background-color: #000000;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  width: 40px;
-  height: 40px;
-}
-
-.button-group button:hover {
-  background-color: #1f1f1f;
-}
-.button-group button i {
-  font-size: 16px; /* Adjust icon size */
+  gap: 8px;
+  margin-left: auto; /* buttons pushed to the right */
 }
 
 /* Messages section */
@@ -75,25 +62,20 @@ body {
   flex-grow: 1;
   padding: 10px;
   overflow-y: auto;
-  max-height: 400px;
+  max-height: 600px;
   min-height: 100px; /* Prevent collapse */
   background-color: #f9f9f9;
-  border-top: 1px solid #ddd;
-  border-bottom: 1px solid #ddd;
-}
-
-/* Message styling */
-.user-message-container,
-.ai-message-container {
-  display: flex;
-  margin: 10px 0;
 }
 
 .user-message-container {
+  display: flex;
+  margin: 10px 0;
   justify-content: flex-end;
 }
 
 .ai-message-container {
+  display: flex;
+  margin: 10px 0;
   justify-content: flex-start;
 }
 
@@ -107,8 +89,8 @@ body {
 }
 
 .user-message {
-  background-color: #375f5a;
-  color: white;
+  background-color: #38615c;
+  color: #fff;
 }
 
 .ai-message {
@@ -131,13 +113,14 @@ body {
 .input-wrapper {
   display: flex;
   padding: 10px 20px;
-  background-color: white;
+  background-color: #ffffff;
   border-top: 1px solid #ddd;
 }
 
 .input-container {
   display: flex;
   align-items: center;
+  gap: 10px;
   width: 100%;
   flex-direction: row-reverse; /* Adjusts the direction */
 }
@@ -145,74 +128,33 @@ body {
 #inputBox {
   flex-grow: 1;
   padding: 10px;
+  font-size: 14px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  margin-left: 10px; /* Adjust for spacing from buttons */
   resize: vertical;
-  overflow-y: auto;
-  font-size: 14px;
 }
 
-#sendButton,
-#attachButton {
-  margin: 0; /* Reset margins */
-}
-
-/* Send Button */
-#sendButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px; /* Match button group size */
-  height: 40px; /* Match button group size */
-  background-color: #000000;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-left: 5px;
-}
-
-#sendButton i {
-  font-size: 16px; /* Icon size matches button group */
-}
-
-#sendButton:hover {
-  background-color: #1f1f1f;
-}
-
-#attachButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px; /* Same size as Send Button */
+button {
+  width: 40px;
   height: 40px;
-  background-color: #000000;
-  color: white;
+  background-color: transparent;
+  color: #000000;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  margin-left: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-#attachButton i {
-  font-size: 16px; /* Icon size */
-}
-
-#attachButton:hover {
-  background-color: #1f1f1f;
-}
-
-.edit-button {
+button:hover {
   background-color: transparent;
-  border: none;
-  color: #106258;
-  cursor: pointer;
-  margin-right: 5px;
+  color: #38615c;
+  transform: scale(1.1);
 }
 
-.edit-button:hover {
-  color: #399489;
+button i {
+  font-size: 25px;
 }
 
 .editable-textarea {
@@ -224,67 +166,84 @@ body {
   border: 1px solid #ddd;
   border-radius: 4px;
   resize: vertical;
-  margin-right: 8px;
-}
-
-.text-block {
-  margin: 5px 0;
+  width: 100%;
 }
 
 .diagram-container {
   position: relative;
   margin: 10px 0;
-  padding: 5px;
-  background-color: white;
+  padding: 10px;
+  background-color: #ffffff;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .mermaid {
-  margin: 20px 0;
-  font-size: 12px;
-  max-width: 100%;
-  overflow-x: auto;
-  border: 1px solid #ddd;
+  margin: 10px 0;
   padding: 10px;
   background-color: #f9f9f9;
+  border: 1px solid #ddd;
   border-radius: 5px;
+  overflow-x: auto;
 }
 
-.svg-button {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  gap: 5px;
-  border-radius: 5px;
-  z-index: 10; /* Ensure the buttons stay above the diagram */
-}
-
-.svg-button button {
-  padding: 6px 10px;
-  font-size: 10px;
-  color: white;
-  background-color: #000000;
+.edit-button {
+  background-color: transparent;
   border: none;
-  border-radius: 4px;
+  color: #000000;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  padding: 5px;
 }
 
-.svg-button button:hover {
-  background-color: #1f1f1f;
+.edit-button i {
+  font-size: 16px;
+}
+
+.edit-button:hover {
+  background-color: transparent;
+  color: #38615c;
+  transform: scale(1.1);
+  transition: color 0.2s, transform 0.2s;
+}
+
+.save-svg-button {
+  border: none;
+  color: #000000;
+  background-color: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.save-svg-button i {
+  font-size: 16px; /* Size of the Font Awesome icon */
+}
+
+.save-svg-button:hover {
+  background-color: transparent;
+  color: #38615c; /* Hover color */
+  transform: scale(1.2); /* Slight scaling effect */
+  transition: color 0.2s, transform 0.2s;
 }
 
 .spinner {
   width: 24px;
   height: 24px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
+  border-top: 4px solid #375f5a;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  display: inline-block; /* Inline for alignment */
-  margin: 0; /* Remove default centering */
 }
 
 @keyframes spin {
@@ -296,31 +255,28 @@ body {
   }
 }
 
-/* Copy Button Styles */
+/* Copy Button */
 .copy-button {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 4px;
+  right: 4px;
   padding: 4px 8px;
-  font-size: 14px;
-  color: white;
-  background-color: #000000;
+  font-size: 16px;
+  color: #000000;
+  background-color: transparent;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   z-index: 10;
   opacity: 0.8;
-  transition: opacity 0.2s ease-in-out;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.copy-button:hover {
-  opacity: 1;
-  background-color: #1f1f1f;
+  transition: opacity 0.2s;
 }
 
 .copy-button i {
-  margin: 0;
+  font-size: 16px;
+}
+.copy-button:hover {
+  color: #38615c;
+  transform: scale(1.2);
+  background-color: transparent;
 }

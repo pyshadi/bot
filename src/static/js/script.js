@@ -44,7 +44,12 @@ class UserMessage extends Message {
 
     const editButton = document.createElement("button");
     editButton.className = "edit-button";
-    editButton.textContent = "Edit";
+
+    // Create and append edit icon
+    const editIcon = document.createElement("i");
+    editIcon.className = "fas fa-edit"; // Font Awesome edit icon class
+    editButton.appendChild(editIcon);
+
     editButton.onclick = editHandler;
 
     userContainer.appendChild(editButton);
@@ -314,7 +319,7 @@ class Chat {
     })
       .then((response) => response.json())
       .then((data) => {
-        aiMessageElement.innerHTML = ""; // Clear spinner
+        aiMessageElement.innerHTML = ""; // clear spinner
 
         const rawResponse = data.response; // Save raw response
         this.rawResponses.push(rawResponse);
@@ -339,7 +344,13 @@ class Chat {
           saveContainer.className = "svg-button";
 
           const saveAsSVGButton = document.createElement("button");
-          saveAsSVGButton.textContent = "SVG";
+          saveAsSVGButton.className = "save-svg-button"; // Updated class for styling
+
+          // Add Font Awesome download icon
+          const saveIcon = document.createElement("i");
+          saveIcon.className = "fas fa-download"; // Font Awesome download icon class
+          saveAsSVGButton.appendChild(saveIcon);
+
           saveAsSVGButton.onclick = () =>
             this.saveMermaidAsImage(mermaidContainer, "svg");
           saveContainer.appendChild(saveAsSVGButton);
@@ -398,25 +409,38 @@ class Chat {
       return;
     }
 
-    if (format === "svg") {
-      try {
-        // Serialize the SVG to a string and save it
+    try {
+      if (format === "svg") {
+        // Serialize the SVG to a string
         const svgData = new XMLSerializer().serializeToString(svgElement);
+
+        // Create a Blob from the SVG data
         const blob = new Blob([svgData], {
           type: "image/svg+xml;charset=utf-8",
         });
+
+        // Create a temporary link element to trigger the download
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = "diagram.svg";
+        link.style.display = "none"; // Hide the link
+        document.body.appendChild(link); // Append to body
+
+        // Trigger download
         link.click();
+
+        // Clean up URL object and remove temporary link
         URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+
         console.log("SVG successfully saved.");
-      } catch (error) {
-        console.error("Error saving SVG:", error);
-        alert("Failed to save the diagram as SVG. Please try again.");
+      } else {
+        console.error(`Unsupported format: ${format}`);
+        alert("Unsupported format. Currently, only SVG format is supported.");
       }
-    } else {
-      console.error(`Unsupported format: ${format}`);
+    } catch (error) {
+      console.error("Error saving SVG:", error);
+      alert("Failed to save the diagram as SVG. Please try again.");
     }
   }
 
@@ -440,12 +464,12 @@ class Chat {
     console.log("Current text in the message:", currentText);
 
     const textarea = document.createElement("textarea");
-    textarea.setAttribute("aria-label", "Edit message"); // Add label for accessibility
+    textarea.setAttribute("aria-label", "Edit message");
     textarea.value = currentText;
     textarea.className = "editable-textarea";
     textarea.rows = currentText.split("\n").length;
 
-    // Store the original text for restoring on cancel
+    // Store the original text
     textarea.dataset.originalText = currentText;
 
     console.log("Replacing message content with textarea:", textarea);
@@ -460,7 +484,7 @@ class Chat {
     textarea.focus();
     console.log("Textarea focused for editing.");
 
-    // Handle saving on Enter and canceling on blur
+    // Saving on Enter and canceling on blur
     textarea.onkeydown = (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault(); // Prevent new line
@@ -488,7 +512,7 @@ class Chat {
       this.enableEditing(messageContainer);
     });
 
-    messageContainer.innerHTML = ""; // Clear existing content
+    messageContainer.innerHTML = "";
     messageContainer.appendChild(userMessageElement);
 
     this.removeSubsequentMessages(messageContainer);
@@ -503,7 +527,7 @@ class Chat {
     // Fetch updated AI response for the new message
     this.fetchAIResponse(newText, aiMessage);
 
-    // Clear the editing reference
+    // clear editing reference
     this.editingMessageElement = null;
   }
 
@@ -512,27 +536,21 @@ class Chat {
 
     // Retrieve the original text
     const originalText = textarea.dataset.originalText;
-    console.log("Original text to restore:", originalText);
-
     const userMessage = new UserMessage(originalText);
     const originalMessageElement = userMessage.renderWithEditButton(() => {
-      console.log("Edit button clicked, re-enabling editing...");
+      console.log("Edit button clicked");
       this.enableEditing(messageContainer);
     });
 
-    messageContainer.innerHTML = ""; // Clear existing content
+    messageContainer.innerHTML = ""; // clear existing content
     messageContainer.appendChild(originalMessageElement);
 
-    this.editingMessageElement = null; // Clear editing reference
+    this.editingMessageElement = null; // clear editing reference
     console.log("Edit canceled and message restored.");
   }
 
   removeSubsequentMessages(messageContainer) {
-    console.log(
-      "Removing subsequent messages for container:",
-      messageContainer
-    );
-
+    console.log("Removing subsequent messages");
     const messagesList = document.getElementById(this.messagesContainerId);
     let currentMessage = messageContainer.nextElementSibling;
 
@@ -543,7 +561,7 @@ class Chat {
       currentMessage = nextMessage;
     }
 
-    console.log("Subsequent messages removed successfully.");
+    console.log("Subsequent messages removed.");
   }
 
   extractMermaidDiagramsAndText(response) {
@@ -574,4 +592,4 @@ const chatApp = new Chat({
   messagesContainerId: "messages",
 });
 
-export default Chat; // for testing
+export default Chat; // testing

@@ -30,6 +30,8 @@
     <div class="chat-container">
       <!-- Header section -->
       <div class="header">
+        <span class="fas fa-paw llama-icon"></span>
+        <!-- Llama or related icon -->
         <h1>Chat with llama3.1</h1>
         <div class="button-group">
           <button id="saveButton" title="Save Chat">
@@ -58,17 +60,17 @@
             placeholder="Type your message here..."
           ></textarea>
 
-          <!-- Attach Button -->
-          <button id="attachButton" title="Attach File">
-            <i class="fas fa-paperclip"></i>
-          </button>
-
           <!-- Hidden File Input for Attach Button -->
           <input type="file" id="fileInput" style="display: none" />
 
           <!-- Send Button -->
           <button id="sendButton" title="Send Message">
             <i class="fas fa-paper-plane"></i>
+          </button>
+
+          <!-- Attach Button -->
+          <button id="attachButton" title="Attach File">
+            <i class="fas fa-paperclip"></i>
           </button>
         </div>
       </div>
