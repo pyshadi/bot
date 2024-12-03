@@ -43,6 +43,7 @@ class UserMessage extends Message {
     const messageElement = this.render();
 
     const editButton = document.createElement("button");
+    editButton.setAttribute("aria-label", "Edit message");
     editButton.className = "edit-button";
 
     // Create and append edit icon
@@ -195,6 +196,7 @@ class Controls {
 
     const saveButton = document.getElementById("saveButton");
     if (saveButton) {
+      saveButton.setAttribute("aria-label", "Save chat");
       saveButton.addEventListener("click", () =>
         FileHandler.saveChat(this.chatApp.messagesContainer)
       );
@@ -651,6 +653,7 @@ class Chat {
   }
 
   scrollToMatch() {
+    console.log("scrollToMatch called", this.currentMatchIndex);
     if (
       this.currentMatchIndex >= 0 &&
       this.currentMatchIndex < this.searchResults.length
