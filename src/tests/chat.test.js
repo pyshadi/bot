@@ -211,7 +211,7 @@ test("Editing a user message updates the content and fetches a new AI response",
   fireEvent.change(inputBox, { target: { value: "Initial message" } });
   fireEvent.click(sendButton);
 
-  chat.clearHighlights();
+  chat.searchHandler.clearHighlights();
 
   // Locate edit button in correct container
   const userMessageContainer = screen
@@ -226,7 +226,7 @@ test("Editing a user message updates the content and fetches a new AI response",
   fireEvent.change(textarea, { target: { value: "Updated message" } });
   fireEvent.keyDown(textarea, { key: "Enter", code: "Enter" });
 
-  // Assert updated content and ai response
+  // Assert updated content and AI response
   await waitFor(() => {
     expect(screen.getByText("Updated message")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
@@ -245,7 +245,7 @@ test("Canceling an edit restores the original message", () => {
   fireEvent.change(inputBox, { target: { value: "Message to edit" } });
   fireEvent.click(sendButton);
 
-  chat.clearHighlights();
+  chat.searchHandler.clearHighlights();
 
   // Locate the edit button in the correct container
   const userMessageContainer = screen
@@ -292,7 +292,7 @@ Line 3`;
   expect(userMessages[0].textContent).toContain("Line 3");
 });
 
-test("Search functionality highlights matches and navigates results", () => {
+test("Search functionality highlights matches in chat messages", () => {
   const chat = new Chat();
   const messagesContainer = chat.messagesContainer;
 
@@ -314,19 +314,124 @@ test("Search functionality highlights matches and navigates results", () => {
   fireEvent.change(searchInput, { target: { value: "message" } });
   fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
 
-  // Assert scroll and highlight behavior
-  expect(scrollMock).toHaveBeenCalledTimes(1);
+  // Assert highlights
+  const highlightedElements = messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElements.length).toBe(4); // Total occurrences of "message"
 
-  // cycle to next match
-  chat.nextMatch();
+  // Ensure `scrollIntoView` is called for the first match
+  expect(scrollMock).toHaveBeenCalledTimes(1);
+});
+
+test("Search functionality navigates between matches", () => {
+  const chat = new Chat();
+  const messagesContainer = chat.messagesContainer;
+
+  // Add messages to the chat
+  messagesContainer.innerHTML = `
+      <div class="message">Message 1</div>
+      <div class="message">Message 2</div>
+      <div class="message">Another message</div>
+      <div class="message">Final message</div>
+  `;
+
+  // Mock `scrollIntoView`
+  const scrollMock = jest.fn();
+  Element.prototype.scrollIntoView = scrollMock;
+
+  // Simulate search query
+  chat.searchChat();
+  const searchInput = document.getElementById("searchInput");
+  fireEvent.change(searchInput, { target: { value: "message" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // Navigate through matches
+  chat.searchHandler.nextMatch();
   expect(scrollMock).toHaveBeenCalledTimes(2);
 
-  // Cycle again to test looping
-  chat.nextMatch();
-  chat.nextMatch();
-  expect(scrollMock).toHaveBeenCalledTimes(4); // Total matches
+  chat.searchHandler.nextMatch();
+  chat.searchHandler.nextMatch();
+  expect(scrollMock).toHaveBeenCalledTimes(4);
 
-  // Reset search
-  fireEvent.blur(searchInput);
-  expect(chat.searchResults.length).toBe(0); // Highligts cleared
+  // Loop back to the first match
+  chat.searchHandler.nextMatch();
+  expect(scrollMock).toHaveBeenCalledTimes(5); // Total scrolls
+});
+
+test("Search functionality handles no matches found", () => {
+  const chat = new Chat();
+  const messagesContainer = chat.messagesContainer;
+
+  messagesContainer.innerHTML = `
+      <div class="message">Hello, how are you?</div>
+      <div class="message">This is a test message.</div>
+  `;
+
+  // simulate search query
+  chat.searchChat();
+  const searchInput = document.getElementById("searchInput");
+  fireEvent.change(searchInput, { target: { value: "nonexistent" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // Assert no highlights and no scrolling occurs
+  const highlightedElements = messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElements.length).toBe(0);
+  expect(chat.searchHandler.searchResults.length).toBe(0);
+});
+
+test("Search functionality removes previous highlights on new search", () => {
+  const chat = new Chat();
+  const messagesContainer = chat.messagesContainer;
+
+  // Add messages to the chat
+  messagesContainer.innerHTML = `
+      <div class="message">Message one</div>
+      <div class="message">Message two</div>
+  `;
+
+  // Simulate first search query
+  chat.searchChat();
+  const searchInput = document.getElementById("searchInput");
+  fireEvent.change(searchInput, { target: { value: "one" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // Assert first highlights
+  const highlightedElementsAfterFirstSearch =
+    messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElementsAfterFirstSearch.length).toBe(1);
+
+  fireEvent.change(searchInput, { target: { value: "two" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // Assert only new highlights exist
+  const highlightedElementsAfterSecondSearch =
+    messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElementsAfterSecondSearch.length).toBe(1);
+  expect(highlightedElementsAfterSecondSearch[0].textContent).toBe("two");
+});
+
+test("Search functionality handles large number of messages efficiently", () => {
+  const chat = new Chat();
+  const messagesContainer = chat.messagesContainer;
+
+  // Add messages to the chat
+  for (let i = 0; i < 1000; i++) {
+    const message = document.createElement("div");
+    message.className = "message";
+    message.textContent = `Message ${i}`;
+    messagesContainer.appendChild(message);
+  }
+
+  // Mock `scrollIntoView`
+  const scrollMock = jest.fn();
+  Element.prototype.scrollIntoView = scrollMock;
+
+  chat.searchChat();
+  const searchInput = document.getElementById("searchInput");
+  fireEvent.change(searchInput, { target: { value: "Message" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // assert that highlights exist and performance is good
+  const highlightedElements = messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElements.length).toBe(1000); // every message is match
+  expect(scrollMock).toHaveBeenCalledTimes(1); // Only initial match scrolls
 });

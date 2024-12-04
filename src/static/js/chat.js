@@ -2,6 +2,7 @@
 import { UserMessage, AiMessage } from "./messages.js";
 import { FileHandler } from "./fileHandler.js";
 import { Controls } from "./controls.js";
+import { SearchHandler } from "./search_handler.js";
 
 export class Chat {
   constructor(config = {}) {
@@ -14,8 +15,8 @@ export class Chat {
     this.rawResponses = []; // Array to store raw AI responses
     this.controls = new Controls(this);
     this.sessionId = this.generateSessionId();
-    this.searchResults = []; // Array to store matching elements
-    this.currentMatchIndex = -1; // Index of the current match
+
+    this.searchHandler = new SearchHandler(this);
 
     // Initialize controls
     this.controls.addEventListeners();
@@ -349,7 +350,6 @@ export class Chat {
     if (!searchInput) {
       const buttonGroup = document.querySelector(".button-group");
 
-      // Create the search input dynamically
       searchInput = document.createElement("input");
       searchInput.id = "searchInput";
       searchInput.type = "text";
@@ -360,133 +360,26 @@ export class Chat {
 
       searchInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
-          event.preventDefault(); // Prevent form submission
-
+          event.preventDefault();
           const query = searchInput.value.trim().toLowerCase();
 
-          // query hasn't changed, cycle to the next match
-          if (query === this.lastSearchQuery) {
-            this.nextMatch();
+          if (query === this.searchHandler.lastSearchQuery) {
+            this.searchHandler.nextMatch();
           } else {
-            this.lastSearchQuery = query;
-            this.executeSearch(query);
+            this.searchHandler.lastSearchQuery = query;
+            this.searchHandler.executeSearch(query);
           }
         }
       });
 
-      // blur event clears highlights and reset last query
       searchInput.addEventListener("blur", () => {
-        this.clearHighlights();
-        this.lastSearchQuery = null;
+        this.searchHandler.clearHighlights();
+        this.searchHandler.lastSearchQuery = null;
         searchInput.remove();
       });
 
       searchInput.focus();
     }
-  }
-
-  executeSearch(searchQuery) {
-    if (!searchQuery) {
-      return; // Do nothing for an empty query
-    }
-
-    const messages = this.messagesContainer.querySelectorAll(".message");
-
-    this.searchResults = [];
-    this.currentMatchIndex = -1;
-
-    messages.forEach((message) => {
-      // If no original content is stored, save it
-      if (!message.dataset.originalContent) {
-        message.dataset.originalContent = message.innerHTML;
-      }
-
-      // Reset content to its original HTML
-      message.innerHTML = message.dataset.originalContent;
-
-      // Highlight only in text nodes
-      const textNodes = [];
-      const findTextNodes = (node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          textNodes.push(node);
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          node.childNodes.forEach(findTextNodes);
-        }
-      };
-      findTextNodes(message);
-
-      textNodes.forEach((node) => {
-        const regex = new RegExp(`(${searchQuery})`, "gi");
-        const text = node.nodeValue;
-        if (regex.test(text)) {
-          const wrapper = document.createElement("span");
-          wrapper.innerHTML = text.replace(
-            regex,
-            `<span class="highlight">$1</span>`
-          );
-          node.parentNode.replaceChild(wrapper, node);
-          this.searchResults.push(wrapper);
-        }
-      });
-    });
-
-    // If matches are found, move to the first match
-    if (this.searchResults.length > 0) {
-      this.currentMatchIndex = 0;
-      this.scrollToMatch();
-    }
-  }
-
-  nextMatch() {
-    if (this.searchResults.length === 0) {
-      return;
-    }
-
-    // Move to the next match, wrapping around to the first
-    this.currentMatchIndex =
-      (this.currentMatchIndex + 1) % this.searchResults.length;
-    this.scrollToMatch();
-  }
-
-  scrollToMatch() {
-    console.log("scrollToMatch called", this.currentMatchIndex);
-    if (
-      this.currentMatchIndex >= 0 &&
-      this.currentMatchIndex < this.searchResults.length
-    ) {
-      const match = this.searchResults[this.currentMatchIndex];
-      match.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }
-
-  highlightText(node, searchQuery) {
-    const regex = new RegExp(`(${searchQuery})`, "gi");
-    const text = node.nodeValue;
-    if (regex.test(text)) {
-      const wrapper = document.createElement("span");
-      wrapper.innerHTML = text.replace(
-        regex,
-        `<span class="highlight">$1</span>`
-      );
-      node.parentNode.replaceChild(wrapper, node);
-      return wrapper; // for further processing
-    }
-    return null;
-  }
-
-  clearHighlights() {
-    const messages = this.messagesContainer.querySelectorAll(".message");
-
-    // Restore original content of each message
-    messages.forEach((message) => {
-      if (message.dataset.originalContent) {
-        message.innerHTML = message.dataset.originalContent;
-      }
-    });
-
-    // Reset search results and state
-    this.searchResults = [];
-    this.currentMatchIndex = -1;
   }
 
   cancelEdit(textarea, messageContainer) {
