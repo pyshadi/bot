@@ -618,20 +618,30 @@ class Chat {
       // Reset content to its original HTML
       message.innerHTML = message.dataset.originalContent;
 
-      const textContent = message.textContent.toLowerCase();
+      // Highlight only in text nodes
+      const textNodes = [];
+      const findTextNodes = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          textNodes.push(node);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          node.childNodes.forEach(findTextNodes);
+        }
+      };
+      findTextNodes(message);
 
-      if (textContent.includes(searchQuery)) {
-        // highlight the matching text
+      textNodes.forEach((node) => {
         const regex = new RegExp(`(${searchQuery})`, "gi");
-        const highlightedContent = message.textContent.replace(
-          regex,
-          `<span class="highlight">$1</span>`
-        );
-
-        message.innerHTML = highlightedContent;
-
-        this.searchResults.push(message);
-      }
+        const text = node.nodeValue;
+        if (regex.test(text)) {
+          const wrapper = document.createElement("span");
+          wrapper.innerHTML = text.replace(
+            regex,
+            `<span class="highlight">$1</span>`
+          );
+          node.parentNode.replaceChild(wrapper, node);
+          this.searchResults.push(wrapper);
+        }
+      });
     });
 
     // If matches are found, move to the first match
@@ -661,6 +671,21 @@ class Chat {
       const match = this.searchResults[this.currentMatchIndex];
       match.scrollIntoView({ behavior: "smooth", block: "center" });
     }
+  }
+
+  highlightText(node, searchQuery) {
+    const regex = new RegExp(`(${searchQuery})`, "gi");
+    const text = node.nodeValue;
+    if (regex.test(text)) {
+      const wrapper = document.createElement("span");
+      wrapper.innerHTML = text.replace(
+        regex,
+        `<span class="highlight">$1</span>`
+      );
+      node.parentNode.replaceChild(wrapper, node);
+      return wrapper; // for further processing
+    }
+    return null;
   }
 
   clearHighlights() {
