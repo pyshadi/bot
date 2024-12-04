@@ -541,3 +541,5 @@ export class Chat {
     this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
   }
 }
+
+export default Chat;

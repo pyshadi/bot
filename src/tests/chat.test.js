@@ -1,6 +1,6 @@
 import { screen, fireEvent, waitFor } from "@testing-library/dom";
 import "@testing-library/jest-dom";
-import Chat from "../static/js/script"; // Adjust the path to match your project structure
+import Chat from "../static/js/chat";
 
 // Mock global objects and libraries
 global.fetch = jest.fn(() =>
