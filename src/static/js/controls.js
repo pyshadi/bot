@@ -1,5 +1,5 @@
 // controls.js
-import { FileHandler } from "./fileHandler.js";
+import { FileHandler } from "./file_handler.js";
 
 export class Controls {
   constructor(chatApp) {

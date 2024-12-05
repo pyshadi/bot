@@ -1,8 +1,9 @@
 // chat.js
 import { UserMessage, AiMessage } from "./messages.js";
-import { FileHandler } from "./fileHandler.js";
+import { FileHandler } from "./file_handler.js";
 import { Controls } from "./controls.js";
 import { SearchHandler } from "./search_handler.js";
+import { DiagramHandler } from "./diagram_handler.js";
 
 export class Chat {
   constructor(config = {}) {
@@ -17,6 +18,7 @@ export class Chat {
     this.sessionId = this.generateSessionId();
 
     this.searchHandler = new SearchHandler(this);
+    this.diagramHandler = new DiagramHandler(this);
 
     // Initialize controls
     this.controls.addEventListeners();
@@ -95,7 +97,6 @@ export class Chat {
 
   fetchAIResponse(userInput, aiMessageElement) {
     console.log("Fetching AI response...");
-
     aiMessageElement.classList.add("ai-message");
 
     const spinner = document.createElement("div");
@@ -115,44 +116,18 @@ export class Chat {
     })
       .then((response) => response.json())
       .then((data) => {
-        aiMessageElement.innerHTML = ""; // clear spinner
+        aiMessageElement.innerHTML = ""; // Clear spinner
 
         const rawResponse = data.response; // Save raw response
         this.rawResponses.push(rawResponse);
 
         const { diagrams, remainingText } =
-          this.extractMermaidDiagramsAndText(rawResponse);
+          this.diagramHandler.extractMermaidDiagramsAndText(rawResponse);
+
         const aiMessage = new AiMessage(rawResponse);
 
         diagrams.forEach((diagram) => {
-          const diagramContainer = document.createElement("div");
-          diagramContainer.className = "diagram-container";
-
-          const mermaidContainer = document.createElement("div");
-          mermaidContainer.className = "mermaid";
-          mermaidContainer.textContent = diagram;
-          diagramContainer.appendChild(mermaidContainer);
-
-          mermaid.init(undefined, mermaidContainer);
-
-          // Add Save Button for SVG
-          const saveContainer = document.createElement("div");
-          saveContainer.className = "svg-button";
-
-          const saveAsSVGButton = document.createElement("button");
-          saveAsSVGButton.className = "save-svg-button"; // Updated class for styling
-
-          // Add Font Awesome download icon
-          const saveIcon = document.createElement("i");
-          saveIcon.className = "fas fa-download"; // Font Awesome download icon class
-          saveAsSVGButton.appendChild(saveIcon);
-
-          saveAsSVGButton.onclick = () =>
-            this.saveMermaidAsImage(mermaidContainer, "svg");
-          saveContainer.appendChild(saveAsSVGButton);
-
-          diagramContainer.appendChild(saveContainer);
-          aiMessageElement.appendChild(diagramContainer);
+          this.diagramHandler.renderMermaidDiagram(aiMessageElement, diagram);
         });
 
         aiMessageElement.appendChild(aiMessage.render());
@@ -413,21 +388,6 @@ export class Chat {
     }
 
     console.log("Subsequent messages removed.");
-  }
-
-  extractMermaidDiagramsAndText(response) {
-    const mermaidCodeRegex =
-      /(?:```mermaid\n([\s\S]*?)```|(?:^|\n)(flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|mindmap|timeline|zenuml)[\s\S]*?(?=\n\S|\n$))/g;
-    const diagrams = [];
-    let remainingText = response;
-
-    let match;
-    while ((match = mermaidCodeRegex.exec(response)) !== null) {
-      diagrams.push(match[1] || match[0].trim());
-      remainingText = remainingText.replace(match[0], "").trim();
-    }
-
-    return { diagrams, remainingText };
   }
 
   scrollToBottom() {

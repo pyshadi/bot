@@ -1,4 +1,4 @@
-// fileHandler.js
+// file_handler.js
 import { mermaid } from "./markdown.js";
 
 export class FileHandler {
