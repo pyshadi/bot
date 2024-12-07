@@ -1,4 +1,3 @@
-// controls.js
 import { FileHandler } from "./file_handler.js";
 
 export class Controls {
@@ -16,8 +15,39 @@ export class Controls {
     if (inputBox) {
       inputBox.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.shiftKey) {
-          event.preventDefault(); // prevents the default newline insertion
+          event.preventDefault();
           this.chatApp.sendMessage();
+        }
+      });
+
+      // Drag & Drop event listeners
+      inputBox.addEventListener("dragenter", (event) => {
+        event.preventDefault();
+        inputBox.classList.add("drag-over");
+      });
+
+      inputBox.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        inputBox.classList.add("drag-over");
+      });
+
+      inputBox.addEventListener("dragleave", (event) => {
+        event.preventDefault();
+        inputBox.classList.remove("drag-over");
+      });
+
+      inputBox.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        inputBox.classList.remove("drag-over");
+        const files = event.dataTransfer.files;
+
+        if (files && files.length > 0) {
+          try {
+            const fileContent = await FileHandler.readFile(files[0]);
+            inputBox.value = fileContent;
+          } catch (error) {
+            alert(error);
+          }
         }
       });
     }
