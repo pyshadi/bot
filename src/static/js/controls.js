@@ -20,7 +20,6 @@ export class Controls {
         }
       });
 
-      // Drag & Drop event listeners
       inputBox.addEventListener("dragenter", (event) => {
         event.preventDefault();
         inputBox.classList.add("drag-over");

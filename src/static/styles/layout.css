@@ -88,3 +88,8 @@
   margin-left: auto; /* buttons pushed to the right */
   position: relative;
 }
+
+.drag-over {
+  border: 2px dashed #4A90E2;
+  background: #f0f8ff;
+}
