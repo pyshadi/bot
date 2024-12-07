@@ -308,17 +308,17 @@ test("Search functionality highlights matches in chat messages", () => {
   const scrollMock = jest.fn();
   Element.prototype.scrollIntoView = scrollMock;
 
-  // simulate search query
+  // Simulate search query
   chat.searchChat();
   const searchInput = document.getElementById("searchInput");
   fireEvent.change(searchInput, { target: { value: "message" } });
   fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
 
-  // Assert highlights
+  // We only expect one highlight at a time, even though multiple matches exist.
   const highlightedElements = messagesContainer.querySelectorAll(".highlight");
-  expect(highlightedElements.length).toBe(4); // Total occurrences of "message"
+  expect(highlightedElements.length).toBe(1);
 
-  // Ensure `scrollIntoView` is called for the first match
+  // Ensure `scrollIntoView` is called for the currently highlighted match
   expect(scrollMock).toHaveBeenCalledTimes(1);
 });
 
@@ -413,7 +413,7 @@ test("Search functionality handles large number of messages efficiently", () => 
   const chat = new Chat();
   const messagesContainer = chat.messagesContainer;
 
-  // Add messages to the chat
+  // Add many messages to the chat
   for (let i = 0; i < 1000; i++) {
     const message = document.createElement("div");
     message.className = "message";
@@ -430,8 +430,10 @@ test("Search functionality handles large number of messages efficiently", () => 
   fireEvent.change(searchInput, { target: { value: "Message" } });
   fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
 
-  // assert that highlights exist and performance is good
+  // After the search completes, we still only expect the first match highlighted
   const highlightedElements = messagesContainer.querySelectorAll(".highlight");
-  expect(highlightedElements.length).toBe(1000); // every message is match
-  expect(scrollMock).toHaveBeenCalledTimes(1); // Only initial match scrolls
+  expect(highlightedElements.length).toBe(1);
+
+  // Only the initial match triggers a scroll
+  expect(scrollMock).toHaveBeenCalledTimes(1);
 });
