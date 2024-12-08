@@ -101,7 +101,7 @@ export class FileHandler {
   static async ocrImage(base64Data) {
     // Extract the base64 string without prefix
     const base64String = base64Data.split(",")[1];
-  
+
     const formData = new FormData();
     formData.append("base64image", `data:image/png;base64,${base64String}`);
     // Default is eng. Example: French = "fre"
@@ -110,7 +110,7 @@ export class FileHandler {
     formData.append("isOverlayRequired", "false");
     // 1 or 2
     formData.append("OCREngine", "1");
-  
+
     const response = await fetch("https://api.ocr.space/parse/image", {
       method: "POST",
       headers: {
@@ -118,47 +118,46 @@ export class FileHandler {
       },
       body: formData,
     });
-  
+
     if (!response.ok) {
       throw new Error("OCR API request failed with status: " + response.status);
     }
-  
+
     const data = await response.json();
-    
+
     if (data.IsErroredOnProcessing) {
-      throw new Error("OCR processing error: " + (data.ErrorMessage || "Unknown error"));
+      throw new Error(
+        "OCR processing error: " + (data.ErrorMessage || "Unknown error")
+      );
     }
-  
+
     const parsedResults = data.ParsedResults;
-    if (!parsedResults || parsedResults.length === 0 || !parsedResults[0].ParsedText) {
+    if (
+      !parsedResults ||
+      parsedResults.length === 0 ||
+      !parsedResults[0].ParsedText
+    ) {
       throw new Error("No text found in the image.");
     }
-  
+
     // Return the extracted text
     return parsedResults[0].ParsedText.trim();
   }
 
-  
   static saveChat(messagesContainer) {
     let chatContent = "";
 
-    // Loop through all message containers and capture their content
-    messagesContainer
-      .querySelectorAll(".message-container")
-      .forEach((container) => {
-        const userMessageElement = container.querySelector(".user-message");
-        const aiMessageElement = container.querySelector(".ai-message");
+    messagesContainer.querySelectorAll(".message-container").forEach((container) => {
+        const rawText = container.getAttribute("data-raw-text") || "";
 
-        if (userMessageElement) {
-          const userText = userMessageElement.textContent.trim();
-          chatContent += `User: ${userText}\n`;
+        if (container.querySelector(".user-message")) {
+            chatContent += `User: ${rawText}\n`;
         }
 
-        if (aiMessageElement) {
-          const aiText = aiMessageElement.textContent.trim();
-          chatContent += `AI: ${aiText}\n`;
+        if (container.querySelector(".ai-message")) {
+            chatContent += `AI: ${rawText}\n`;
         }
-      });
+    });
 
     const blob = new Blob([chatContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -169,9 +168,13 @@ export class FileHandler {
     link.click();
 
     URL.revokeObjectURL(url);
-  }
+}
+
 
   static clearChat(messagesContainer) {
-    messagesContainer.innerHTML = ""; // clear all messages
+    if (!messagesContainer) return;
+    messagesContainer.innerHTML = ""; // Clear DOM content
+    // Reset any Mermaid state
+    mermaid.initialize({ startOnLoad: false });
   }
 }

@@ -57,7 +57,6 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-
 .input-wrapper {
   display: flex;
   padding: 10px 20px;
@@ -68,7 +67,7 @@
 .input-container {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   flex-direction: row-reverse;
 }
@@ -84,12 +83,11 @@
 
 .button-group {
   display: flex;
-  gap: 8px;
   margin-left: auto; /* buttons pushed to the right */
   position: relative;
 }
 
 .drag-over {
-  border: 2px dashed #4A90E2;
+  border: 2px dashed #4a90e2;
   background: #f0f8ff;
 }

@@ -61,14 +61,39 @@ export class Controls {
 
     const clearButton = document.getElementById("clearButton");
     if (clearButton) {
-      clearButton.addEventListener("click", () =>
-        FileHandler.clearChat(this.chatApp.messagesContainer)
-      );
+      clearButton.addEventListener("click", () => {
+        FileHandler.clearChat(this.chatApp.messagesContainer);
+        console.log("Chat cleared.");
+      });
     }
 
     const searchButton = document.getElementById("searchButton");
     if (searchButton) {
       searchButton.addEventListener("click", () => this.chatApp.searchChat());
+    }
+
+    // Add event handlers for Load Button
+    const loadButton = document.getElementById("loadButton");
+    const loadChatFileInput = document.getElementById("loadChatFileInput");
+
+    if (loadButton && loadChatFileInput) {
+      loadButton.addEventListener("click", () => loadChatFileInput.click());
+
+      loadChatFileInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          try {
+            const fileContent = await FileHandler.readFile(file);
+            console.log("File loaded, content:", fileContent);
+            this.chatApp.loadChatHistory(fileContent);
+
+            // Reset the file input to allow re-loading
+            loadChatFileInput.value = "";
+          } catch (error) {
+            alert("Error loading chat: " + error);
+          }
+        }
+      });
     }
   }
 }

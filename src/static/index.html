@@ -37,7 +37,7 @@
     <div class="chat-container">
       <!-- Header section -->
       <div class="header">
-        <span class="fas fa-paw llama-icon"></span>
+        <span class="fas fa-robot"></span>
         <!-- Llama or related icon -->
         <h1>Chat with llama3.1</h1>
         <div class="button-group">
@@ -46,6 +46,15 @@
             <i class="fas fa-search"></i>
           </button>
 
+          <button id="loadButton" title="Load Chat">
+            <i class="fas fa-folder-open"></i>
+          </button>
+          <input
+            id="loadChatFileInput"
+            type="file"
+            accept=".txt"
+            style="display: none"
+          />
           <button id="saveButton" title="Save Chat">
             <i class="fas fa-save"></i>
           </button>
