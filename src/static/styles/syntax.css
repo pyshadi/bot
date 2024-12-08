@@ -21,48 +21,50 @@
   padding-right: 100px;
   white-space: pre;
 }
-  
-  .copy-button {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    font-size: 16px;
-    color: #000000;
-    background-color: transparent;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    z-index: 10;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-  }
 
-  .run-code-button,
-  .show-code-button {
-    position: absolute;
-    top: 2px;
-    right: 25px;
-    font-size: 16px;
-    color: #000000;
-    background-color: transparent;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    z-index: 10;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-  }
-  
-  
-  .copy-button i,
-  .run-code-button i,
-  .show-code-button i {
-    font-size: 16px;
-  }
-  
-  .copy-button:hover,
-  .run-code-button:hover,
-  .show-code-button:hover {
-    color: #38615c;
-  }
-  
+.copy-button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 16px;
+  color: #000000;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.run-code-button,
+.show-code-button {
+  position: absolute;
+  top: 2px;
+  right: 25px;
+  font-size: 16px;
+  color: #000000;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.copy-button i,
+.run-code-button i,
+.show-code-button i {
+  font-size: 16px;
+}
+
+.copy-button:hover,
+.run-code-button:hover,
+.show-code-button:hover {
+  color: #38615c;
+}
+
+pre code {
+  white-space: pre;
+}

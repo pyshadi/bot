@@ -433,7 +433,6 @@ export class Chat {
   loadChatHistory(fileContent) {
     console.log("Loading chat history...");
 
-    // Clear existing messages
     FileHandler.clearChat(this.messagesContainer);
 
     const lines = fileContent.split("\n");
@@ -443,18 +442,16 @@ export class Chat {
     const finalizeMessage = () => {
       if (!currentSpeaker || !currentMessageText.trim()) return;
 
-      const trimmedMessage = currentMessageText.trim();
+      const trimmedMessage = currentMessageText; // Do not trim here if you want to preserve indentation
       const container = this.createMessageContainer();
       container.setAttribute("data-raw-text", trimmedMessage);
 
       if (currentSpeaker === "User") {
-        // Render user message
         const userMessage = new UserMessage(trimmedMessage);
         container.appendChild(
           userMessage.renderWithEditButton(() => this.enableEditing(container))
         );
       } else if (currentSpeaker === "AI") {
-        // Render AI message with diagrams and text
         const { diagrams, remainingText } =
           this.diagramHandler.extractMermaidDiagramsAndText(trimmedMessage);
         const aiMessage = new AiMessage(remainingText);
@@ -464,8 +461,8 @@ export class Chat {
         });
 
         container.appendChild(aiMessage.render());
-        Prism.highlightAll(); // Apply syntax highlighting
-        this.addCopyButtons(container); // Add copy buttons to code blocks
+        Prism.highlightAll();
+        this.addCopyButtons(container);
       }
 
       this.messagesContainer.appendChild(container);
@@ -474,23 +471,35 @@ export class Chat {
     };
 
     for (const line of lines) {
-      const trimmedLine = line.trim();
-      if (!trimmedLine) continue;
+      // Do not trim leading spaces!
+      // Just remove a trailing carriage return if needed.
+      const processedLine = line.replace(/\r$/, "");
 
-      if (trimmedLine.startsWith("User:")) {
+      if (!processedLine && currentSpeaker) {
+        // If it's just an empty line, you can decide how to handle it.
+        // For code, empty lines might be important, so consider adding it as is.
+        currentMessageText += "\n";
+        continue;
+      }
+
+      if (processedLine.startsWith("User:")) {
         finalizeMessage();
         currentSpeaker = "User";
-        currentMessageText = trimmedLine.replace("User:", "").trim();
-      } else if (trimmedLine.startsWith("AI:")) {
+        currentMessageText = processedLine
+          .replace("User:", "")
+          .replace(/^\s+/, "");
+      } else if (processedLine.startsWith("AI:")) {
         finalizeMessage();
         currentSpeaker = "AI";
-        currentMessageText = trimmedLine.replace("AI:", "").trim();
+        currentMessageText = processedLine
+          .replace("AI:", "")
+          .replace(/^\s+/, "");
       } else {
-        currentMessageText += "\n" + trimmedLine;
+        currentMessageText += "\n" + processedLine;
       }
     }
 
-    finalizeMessage(); // Finalize the last message
+    finalizeMessage();
     console.log("Chat history loaded successfully.");
     this.scrollToBottom();
   }
