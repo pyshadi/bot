@@ -10,7 +10,7 @@ export class SearchHandler {
   executeSearch(searchQuery) {
     if (!searchQuery) return;
 
-    // Clear any previous highlights before starting a new search
+    // Clear previous highlights before starting a new search
     this.clearHighlights();
 
     this.searchResults = [];
@@ -20,46 +20,55 @@ export class SearchHandler {
     const messages = this.chat.messagesContainer.querySelectorAll(".message");
     const regex = new RegExp(`(${searchQuery})`, "gi");
 
-    // Find all matches and store them
     messages.forEach((message) => {
-      if (!message.dataset.originalContent) {
-        message.dataset.originalContent = message.innerHTML;
-      }
-
-      // Ensure message content is original before searching
-      message.innerHTML = message.dataset.originalContent;
-
-      const textNodes = [];
-      const findTextNodes = (node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          textNodes.push(node);
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          node.childNodes.forEach(findTextNodes);
+        if (!message.dataset.originalContent) {
+            message.dataset.originalContent = message.innerHTML;
         }
-      };
-      findTextNodes(message);
 
-      textNodes.forEach((node) => {
-        const text = node.nodeValue;
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-          this.searchResults.push({
-            message,
-            nodePath: this.getNodePath(node, message),
-            start: match.index,
-            length: match[1].length,
-          });
-        }
-      });
+        message.innerHTML = message.dataset.originalContent;
+
+        const textNodes = [];
+        const findTextNodes = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                textNodes.push(node);
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                node.childNodes.forEach(findTextNodes);
+            }
+        };
+        findTextNodes(message);
+
+        textNodes.forEach((node) => {
+            const text = node.nodeValue;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                this.searchResults.push({
+                    message,
+                    nodePath: this.getNodePath(node, message),
+                    start: match.index,
+                    length: match[1].length,
+                });
+            }
+        });
     });
 
-    // Highlight the first match if any found
+    const searchInput = document.getElementById("searchInput");
     if (this.searchResults.length > 0) {
-      this.currentMatchIndex = 0;
-      this.highlightCurrentMatch();
-      this.scrollToMatch();
+        // Remove "search-error" class if matches found
+        if (searchInput) {
+            searchInput.classList.remove("search-error");
+        }
+
+        this.currentMatchIndex = 0;
+        this.highlightCurrentMatch();
+        this.scrollToMatch();
+    } else {
+        // Add "search-error" class if no matches found
+        if (searchInput) {
+            searchInput.classList.add("search-error");
+        }
     }
-  }
+}
+
 
   highlightCurrentMatch() {
     if (this.currentMatchIndex < 0 || this.currentMatchIndex >= this.searchResults.length) return;
