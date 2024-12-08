@@ -109,53 +109,55 @@ export class Chat {
     aiMessageElement.appendChild(spinner);
 
     fetch(this.apiURL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            session_id: this.sessionId,
-            model: this.model,
-            user_input: userInput.trim(),
-        }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        session_id: this.sessionId,
+        model: this.model,
+        user_input: userInput.trim(),
+      }),
     })
-        .then((response) => response.json())
-        .then((data) => {
-            aiMessageElement.innerHTML = ""; // Clear spinner
+      .then((response) => response.json())
+      .then((data) => {
+        aiMessageElement.innerHTML = ""; // Clear spinner
 
-            const rawResponse = data.response;
-            this.rawResponses.push(rawResponse);
+        const rawResponse = data.response;
+        this.rawResponses.push(rawResponse);
 
-            // Store the raw response for exact reconstruction
-            aiMessageElement.closest(".message-container").setAttribute("data-raw-text", rawResponse);
+        // Store the raw response for exact reconstruction
+        aiMessageElement
+          .closest(".message-container")
+          .setAttribute("data-raw-text", rawResponse);
 
-            // Process the response to extract diagrams and text
-            const { diagrams, remainingText } = this.diagramHandler.extractMermaidDiagramsAndText(rawResponse);
+        // Process the response to extract diagrams and text
+        const { diagrams, remainingText } =
+          this.diagramHandler.extractMermaidDiagramsAndText(rawResponse);
 
-            // Create the AI message using the processed text
-            const aiMessage = new AiMessage(remainingText);
+        // Create the AI message using the processed text
+        const aiMessage = new AiMessage(remainingText);
 
-            // Render diagrams in the AI message container
-            diagrams.forEach((diagram) => {
-                this.diagramHandler.renderMermaidDiagram(aiMessageElement, diagram);
-            });
-
-            // Render the remaining text as part of the AI message
-            aiMessageElement.appendChild(aiMessage.render());
-
-            // Syntax highlighting for code blocks
-            Prism.highlightAll();
-
-            // Add copy buttons to code blocks within the message
-            this.addCopyButtons(aiMessageElement);
-        })
-        .catch((error) => {
-            console.error("Error fetching AI response:", error);
-            aiMessageElement.innerHTML = "There was an error processing your request.";
+        // Render diagrams in the AI message container
+        diagrams.forEach((diagram) => {
+          this.diagramHandler.renderMermaidDiagram(aiMessageElement, diagram);
         });
-}
 
+        // Render the remaining text as part of the AI message
+        aiMessageElement.appendChild(aiMessage.render());
 
+        // Syntax highlighting for code blocks
+        Prism.highlightAll();
+
+        // Add copy buttons to code blocks within the message
+        this.addCopyButtons(aiMessageElement);
+      })
+      .catch((error) => {
+        console.error("Error fetching AI response:", error);
+        aiMessageElement.innerHTML =
+          "There was an error processing your request.";
+      });
+  }
 
   addCopyButtons(parentElement) {
     const codeBlocks = parentElement.querySelectorAll("pre > code");
@@ -382,60 +384,59 @@ export class Chat {
     let currentMessageText = "";
 
     const finalizeMessage = () => {
-        if (!currentSpeaker || !currentMessageText.trim()) return;
+      if (!currentSpeaker || !currentMessageText.trim()) return;
 
-        const trimmedMessage = currentMessageText.trim();
-        const container = this.createMessageContainer();
-        container.setAttribute("data-raw-text", trimmedMessage);
+      const trimmedMessage = currentMessageText.trim();
+      const container = this.createMessageContainer();
+      container.setAttribute("data-raw-text", trimmedMessage);
 
-        if (currentSpeaker === "User") {
-            // Render user message
-            const userMessage = new UserMessage(trimmedMessage);
-            container.appendChild(userMessage.renderWithEditButton(() =>
-                this.enableEditing(container)
-            ));
-        } else if (currentSpeaker === "AI") {
-            // Render AI message with diagrams and text
-            const { diagrams, remainingText } = this.diagramHandler.extractMermaidDiagramsAndText(trimmedMessage);
-            const aiMessage = new AiMessage(remainingText);
+      if (currentSpeaker === "User") {
+        // Render user message
+        const userMessage = new UserMessage(trimmedMessage);
+        container.appendChild(
+          userMessage.renderWithEditButton(() => this.enableEditing(container))
+        );
+      } else if (currentSpeaker === "AI") {
+        // Render AI message with diagrams and text
+        const { diagrams, remainingText } =
+          this.diagramHandler.extractMermaidDiagramsAndText(trimmedMessage);
+        const aiMessage = new AiMessage(remainingText);
 
-            diagrams.forEach((diagram) => {
-                this.diagramHandler.renderMermaidDiagram(container, diagram);
-            });
+        diagrams.forEach((diagram) => {
+          this.diagramHandler.renderMermaidDiagram(container, diagram);
+        });
 
-            container.appendChild(aiMessage.render());
-            Prism.highlightAll(); // Apply syntax highlighting
-            this.addCopyButtons(container); // Add copy buttons to code blocks
-        }
+        container.appendChild(aiMessage.render());
+        Prism.highlightAll(); // Apply syntax highlighting
+        this.addCopyButtons(container); // Add copy buttons to code blocks
+      }
 
-        this.messagesContainer.appendChild(container);
-        currentMessageText = "";
-        currentSpeaker = null;
+      this.messagesContainer.appendChild(container);
+      currentMessageText = "";
+      currentSpeaker = null;
     };
 
     for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (!trimmedLine) continue;
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
 
-        if (trimmedLine.startsWith("User:")) {
-            finalizeMessage();
-            currentSpeaker = "User";
-            currentMessageText = trimmedLine.replace("User:", "").trim();
-        } else if (trimmedLine.startsWith("AI:")) {
-            finalizeMessage();
-            currentSpeaker = "AI";
-            currentMessageText = trimmedLine.replace("AI:", "").trim();
-        } else {
-            currentMessageText += "\n" + trimmedLine;
-        }
+      if (trimmedLine.startsWith("User:")) {
+        finalizeMessage();
+        currentSpeaker = "User";
+        currentMessageText = trimmedLine.replace("User:", "").trim();
+      } else if (trimmedLine.startsWith("AI:")) {
+        finalizeMessage();
+        currentSpeaker = "AI";
+        currentMessageText = trimmedLine.replace("AI:", "").trim();
+      } else {
+        currentMessageText += "\n" + trimmedLine;
+      }
     }
 
     finalizeMessage(); // Finalize the last message
     console.log("Chat history loaded successfully.");
     this.scrollToBottom();
-}
-
-
+  }
 
   cancelEdit(textarea, messageContainer) {
     console.log("Canceling edit and restoring original message...");

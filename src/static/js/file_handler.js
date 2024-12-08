@@ -147,17 +147,19 @@ export class FileHandler {
   static saveChat(messagesContainer) {
     let chatContent = "";
 
-    messagesContainer.querySelectorAll(".message-container").forEach((container) => {
+    messagesContainer
+      .querySelectorAll(".message-container")
+      .forEach((container) => {
         const rawText = container.getAttribute("data-raw-text") || "";
 
         if (container.querySelector(".user-message")) {
-            chatContent += `User: ${rawText}\n`;
+          chatContent += `User: ${rawText}\n`;
         }
 
         if (container.querySelector(".ai-message")) {
-            chatContent += `AI: ${rawText}\n`;
+          chatContent += `AI: ${rawText}\n`;
         }
-    });
+      });
 
     const blob = new Blob([chatContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -168,8 +170,7 @@ export class FileHandler {
     link.click();
 
     URL.revokeObjectURL(url);
-}
-
+  }
 
   static clearChat(messagesContainer) {
     if (!messagesContainer) return;
