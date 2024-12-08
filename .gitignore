@@ -58,3 +58,4 @@ webpack.config.js
 # Ignore miscellaneous system files
 Thumbs.db
 desktop.ini
+replacements.txt
