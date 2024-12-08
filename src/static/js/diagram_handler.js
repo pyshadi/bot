@@ -116,35 +116,86 @@ export class DiagramHandler {
     // Replace unicode ellipsis with '...'
     lines = lines.map((line) => line.replace(/…/g, "..."));
 
-    // Fix arrow labeling issues like `A --> B: What is your name?;`
-    // We'll convert `A --> B: Some label;` into `A -->|Some label| B`.
-    // The pattern: `[Node/ID] --> [Node/ID]: Label;`
+    // Remove trailing semicolons
+    lines = lines.map((line) => line.replace(/;+\s*$/, ""));
+
+    // Fix edges that have a trailing '>' after a label:
+    // e.g. `A -->|Label|> B` -> `A -->|Label| B`
+    // We'll replace `|> ` with `| ` but only when it's part of an arrow definition.
     lines = lines.map((line) => {
-      // Regex to match lines with a pattern like `A --> B: Something;`
-      // Group 1: start node
-      // Group 2: end node
-      // Group 3: label
-      const arrowLabelRegex = /^(\S+)\s*-->\s*(\S+)\s*:\s*(.+?);?$/;
+      // First fix `|>` occurrences after labels
+      // This pattern looks for `-->|someLabel|>` and removes the `>` directly following the label.
+      return line.replace(/(\-\->\|[^|]+\|)>(\s*)/g, "$1 $2");
+    });
+
+    // Convert colon-labeled edges `A --> B: Label` to `A -->|Label| B`
+    const arrowLabelRegex = /^(\S+)\s*-->\s*(\S+)\s*:\s*(.+)$/;
+    lines = lines.map((line) => {
       const match = line.match(arrowLabelRegex);
       if (match) {
         const startNode = match[1];
         const endNode = match[2];
         const label = match[3].trim();
-        // Convert to `A -->|label| B`
-        line = `${startNode} -->|${label}| ${endNode}`;
+        return `${startNode} -->|${label}| ${endNode}`;
       }
       return line;
     });
 
-    // Also fix lines where arrow labels might have had extra `>`
-    // For example: `A -->|Label|>` => `A -->|Label| `
+    // Ensure node labels with colons or quotes are wrapped in double quotes
     lines = lines.map((line) => {
-      return line.replace(/(\|[^|]+\|)>(\s*)/g, "$1 $2");
+      return line.replace(/(\[[^\]]+\])/g, (match) => {
+        let content = match.slice(1, -1); // remove brackets
+        if (
+          (content.includes(":") || content.includes('"')) &&
+          !/^".*"$/.test(content)
+        ) {
+          // Replace double quotes inside with single quotes
+          let sanitized = content.replace(/"/g, "'");
+          // Wrap entire label in double quotes
+          sanitized = `"${sanitized}"`;
+          return "[" + sanitized + "]";
+        }
+        return match;
+      });
     });
 
-    // Ensure spacing between nodes and arrows:
-    // If there's a pattern like `]B` directly after a bracket, insert a space.
-    lines = lines.map((line) => line.replace(/](\w)/g, "] $1"));
+    // Ensure spacing between nodes if a bracketed node is immediately followed by another node name or arrow
+    // For example: `B[Yield]B` should become `B[Yield] B`
+    // We'll insert a space whenever `]` is followed directly by a capital letter or certain arrow chars.
+    lines = lines.map((line) => {
+      // Insert a space after `]` if followed by a letter or arrow start
+      return line.replace(/](?=[A-Z])/g, "] ").replace(/](?=\-\->)/g, "] ");
+    });
+
+    // Also, if a line has multiple arrows without separation, try to split them.
+    // E.g. `A -->|Label| B[Node]B -->|Label2| C[Another]` might need splitting.
+    // This is a heuristic: If we find multiple `-->` in one line, we can try splitting at the second arrow.
+    lines = lines.flatMap((line) => {
+      const parts = line.split(/(\S+\s*-->\s*\S+)/);
+      // If we have more than 2 arrow-like parts, attempt to reconstruct lines
+      // by pairing them properly. This is a rough heuristic.
+      if (parts.filter((p) => p.match(/\s*-->\s*/)).length > 1) {
+        // Attempt to rejoin each arrow definition on its own line
+        let rebuilt = [];
+        let buffer = "";
+        for (let part of parts) {
+          buffer += part;
+          if (part.match(/\s*-->\s*/)) {
+            // Once we find an arrow segment, if the buffer ends with a node,
+            // we consider that a complete segment and push it as a line.
+            rebuilt.push(buffer.trim());
+            buffer = "";
+          }
+        }
+        if (buffer.trim()) {
+          rebuilt[rebuilt.length - 1] += " " + buffer.trim();
+        }
+        return rebuilt;
+      } else {
+        // No multiple arrows or too complex structure, keep line as is
+        return [line];
+      }
+    });
 
     diagram = lines.join("\n");
     return diagram;

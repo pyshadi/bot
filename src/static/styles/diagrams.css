@@ -1,6 +1,6 @@
 /* Diagram container styles */
 .diagram-container {
-  width: 90%;
+  width: 100%;
   position: relative;
   margin: 10px auto;
   padding: 10px;
@@ -21,7 +21,8 @@
   color: #38615c;
 }
 
-.mermaid {
+.mermaid {  
+  width: 100%;
   padding: 10px;
   background-color: #f9f9f9;
   border: 1px solid #ddd;
