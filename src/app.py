@@ -11,6 +11,16 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from typing import List, Dict
 from pathlib import Path
+import subprocess
+from typing import Optional
+
+
+class CodeExecutionRequest(BaseModel):
+    code: str
+
+class CodeExecutionResponse(BaseModel):
+    output: str
+    error: Optional[str] = None
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -119,3 +129,45 @@ async def chat(request: Request, body: ChatRequest):
             status_code=500,
             detail="An unexpected error occurred. Please try again later."
         )
+
+
+@app.post("/run-python/", response_model=CodeExecutionResponse)
+@limiter.limit("10/minute")
+async def run_python_code(request: Request, body: CodeExecutionRequest):
+    try:
+        # Using subprocess to execute the code safely
+        result = subprocess.run(
+            ["python3", "-c", body.code],
+            text=True,
+            capture_output=True,
+            timeout=5  # Limit execution time to 5 seconds
+        )
+
+        return CodeExecutionResponse(
+            output=result.stdout or "",
+            error=result.stderr if result.returncode != 0 else None
+        )
+    except subprocess.TimeoutExpired:
+        return CodeExecutionResponse(output="", error="Code execution timed out.")
+    except Exception as e:
+        logger.error(f"Code execution error: {str(e)}")
+        return CodeExecutionResponse(output="", error="Failed to execute the code.")
+
+    try:
+        # Using subprocess to execute the code safely
+        result = subprocess.run(
+            ["python3", "-c", body.code],
+            text=True,
+            capture_output=True,
+            timeout=5  # Limit execution time to 5 seconds
+        )
+
+        return CodeExecutionResponse(
+            output=result.stdout,
+            error=result.stderr if result.returncode != 0 else None
+        )
+    except subprocess.TimeoutExpired:
+        return CodeExecutionResponse(output="", error="Code execution timed out.")
+    except Exception as e:
+        logger.error(f"Code execution error: {str(e)}")
+        return CodeExecutionResponse(output="", error="Failed to execute the code.")

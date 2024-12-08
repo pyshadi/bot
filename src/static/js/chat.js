@@ -163,44 +163,101 @@ export class Chat {
     const codeBlocks = parentElement.querySelectorAll("pre > code");
 
     codeBlocks.forEach((codeBlock) => {
+      const wrapper = codeBlock.closest("pre");
+
+      // Ensure the wrapper has the appropriate class and position
+      wrapper.classList.add("code-block-wrapper");
+      wrapper.style.position = "relative";
+
+      // Copy Button
       const copyButton = document.createElement("button");
       copyButton.className = "copy-button";
 
-      const icon = document.createElement("i");
-      icon.className = "fas fa-copy"; // Font Awesome icon class for copy
-      copyButton.appendChild(icon);
+      const copyIcon = document.createElement("i");
+      copyIcon.className = "fas fa-copy";
+      copyButton.appendChild(copyIcon);
 
       copyButton.onclick = () => {
         navigator.clipboard
           .writeText(codeBlock.textContent)
           .then(() => {
-            icon.className = "fas fa-check"; // Change icon to a checkmark
-            setTimeout(() => (icon.className = "fas fa-copy"), 2000); // Reset to copy icon
+            copyIcon.className = "fas fa-check"; // Change icon to checkmark
+            setTimeout(() => (copyIcon.className = "fas fa-copy"), 2000); // Revert icon after 2 seconds
           })
           .catch((err) => {
             console.error("Error copying to clipboard:", err);
           });
       };
 
-      const wrapper = codeBlock.closest("pre");
-      wrapper.classList.add("code-block-wrapper");
-
-      // Add relative positioning to the wrapper
-      wrapper.style.position = "relative";
+      // Always append the Copy button
       wrapper.appendChild(copyButton);
 
-      // Update the position of the button within the wrapper
-      const updateButtonPosition = () => {
-        const wrapperRect = wrapper.getBoundingClientRect();
-        const scrollOffset = wrapper.scrollLeft; // Horizontal scroll offset of the wrapper
+      // Only add Run/Show Code button for Python code blocks
+      if (codeBlock.classList.contains("language-python")) {
+        const runButton = document.createElement("button");
+        runButton.className = "run-code-button";
 
-        copyButton.style.top = `8px`; // Fixed distance from the top of the wrapper
-        copyButton.style.right = `${8 - scrollOffset}px`; // Adjust for the horizontal scroll
-      };
+        const runIcon = document.createElement("i");
+        runIcon.className = "fas fa-play";
+        runButton.appendChild(runIcon);
 
-      // Update the button's position initially and on wrapper scroll
-      wrapper.addEventListener("scroll", updateButtonPosition);
-      updateButtonPosition();
+        runButton.onclick = async () => {
+          try {
+            const messageContainer = runButton.closest(".message-container");
+            const allCodeBlocks =
+              messageContainer.querySelectorAll("pre > code");
+
+            // Combine all code blocks in the same message
+            let combinedCode = "";
+            allCodeBlocks.forEach((block) => {
+              combinedCode += block.textContent + "\n";
+            });
+
+            // Toggle between showing code and output
+            const isShowingOutput =
+              codeBlock.classList.contains("showing-output");
+            if (isShowingOutput) {
+              codeBlock.textContent = codeBlock.dataset.originalCode;
+              codeBlock.classList.remove("showing-output");
+              runButton.innerHTML = `<i class="fas fa-play"></i>`; // Change to Run icon
+              Prism.highlightAll(); // Reapply syntax highlighting
+              return;
+            }
+
+            if (!combinedCode.trim()) {
+              alert("No code to execute.");
+              return;
+            }
+
+            // Save the original code for toggling back
+            codeBlock.dataset.originalCode = codeBlock.textContent;
+
+            // Send code to backend for execution
+            const response = await fetch("/run-python/", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: combinedCode }),
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+              codeBlock.textContent = `Error: ${result.error}`;
+            } else {
+              codeBlock.textContent = result.output || "No output.";
+            }
+
+            codeBlock.classList.add("showing-output");
+            runButton.innerHTML = `<i class="fas fa-code"></i>`; // Change to Show Code icon
+          } catch (error) {
+            console.error("Error running code:", error);
+            alert("Failed to execute the code.");
+          }
+        };
+
+        // Append the Run button to the wrapper
+        wrapper.appendChild(runButton);
+      }
     });
   }
 

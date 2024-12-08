@@ -44,30 +44,6 @@ button i {
   transition: color 0.2s, transform 0.2s;
 }
 
-.copy-button {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  font-size: 16px;
-  color: #000000;
-  background-color: transparent;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  z-index: 10;
-  opacity: 0.8;
-  transition: opacity 0.2s;
-}
-
-.copy-button i {
-  font-size: 16px;
-}
-
-.code-block-wrapper:hover .copy-button,
-.copy-button:hover {
-  color: #38615c;
-}
-
 .save-svg-button {
   border: none;
   color: #000000;
@@ -93,3 +69,4 @@ button i {
   transform: scale(1.2); /* scaling effect */
   transition: color 0.2s, transform 0.2s;
 }
+
