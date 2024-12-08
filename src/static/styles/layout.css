@@ -1,0 +1,98 @@
+.chat-container {
+  width: 100%;
+  max-width: 1000px;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* push content to edges */
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+  background-color: #ffffff;
+}
+
+.llama-icon {
+  display: inline-block;
+  font-size: 25px;
+  color: #000000;
+  line-height: 1;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  margin-left: 10px;
+}
+
+.highlight {
+  background-color: #ffeeba;
+  color: #000;
+  /* font-weight: bold; */
+  padding: 0;
+  margin: 0;
+  display: inline;
+}
+
+.search-input {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 100%;
+  margin-right: 8px;
+  padding: 5px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  z-index: 10;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.input-wrapper {
+  display: flex;
+  padding: 10px 20px;
+  background-color: #ffffff;
+  border-top: 1px solid #ddd;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex-direction: row-reverse;
+}
+
+#inputBox {
+  flex-grow: 1;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.search-error {
+    border-color: red;
+    background-color: #ffe6e6;
+}
+
+.button-group {
+  display: flex;
+  margin-left: auto; /* buttons pushed to the right */
+  position: relative;
+}
+
+.drag-over {
+  border: 2px dashed #4a90e2;
+  background: #f0f8ff;
+}

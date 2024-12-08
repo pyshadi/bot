@@ -1,0 +1,32 @@
+/* Diagram container styles */
+.diagram-container {
+  width: 100%;
+  position: relative;
+  margin: 10px auto;
+  padding: 10px;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.diagram-container:hover {
+  border-color: #38615c;
+}
+
+.diagram-container:hover .save-svg-button,
+.save-svg-button:hover {
+  color: #38615c;
+}
+
+.mermaid {  
+  width: 100%;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  overflow-x: auto;
+}
+ 

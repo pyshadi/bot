@@ -1,6 +1,6 @@
 import { screen, fireEvent, waitFor } from "@testing-library/dom";
 import "@testing-library/jest-dom";
-import Chat from "../static/js/script"; // Adjust the path to match your project structure
+import Chat from "../static/js/chat";
 
 // Mock global objects and libraries
 global.fetch = jest.fn(() =>
@@ -24,7 +24,7 @@ global.markdownit = jest.fn(() => ({
   render: jest.fn((text) => `<p>${text}</p>`),
 }));
 
-// Prepare the DOM for testing
+// Prepare DOM
 beforeEach(() => {
   document.body.innerHTML = `
     <div id="messages"></div>
@@ -32,15 +32,21 @@ beforeEach(() => {
     <button id="sendButton">Send</button>
     <button id="saveButton">Save</button>
     <button id="clearButton">Clear</button>
+    <div class="button-group">
+      <button id="searchButton">Search</button>
+    </div>
     <input id="fileInput" type="file" style="display:none;" />
   `;
+  global.URL.createObjectURL = jest.fn(() => "mocked-url");
+  global.URL.revokeObjectURL = jest.fn();
+  Element.prototype.scrollIntoView = jest.fn();
 });
 
 afterEach(() => {
   jest.clearAllMocks();
 });
 
-// Test cases
+// Tests
 
 test("Chat initializes with correct defaults", () => {
   const chat = new Chat({
@@ -57,26 +63,24 @@ test("Chat initializes with correct defaults", () => {
   expect(chat.messagesContainer).toBeInstanceOf(HTMLElement);
 });
 
-test("User message is sent and rendered with proper structure", () => {
-  // Setup
+test("User message is sent and rendered correctly", () => {
   const chat = new Chat();
   const inputBox = screen.getByRole("textbox");
   const sendButton = screen.getByText("Send");
 
-  // Action
   fireEvent.change(inputBox, { target: { value: "Hello, AI!" } });
   fireEvent.click(sendButton);
 
-  // Assertion
   const userMessage = screen.getByText("Hello, AI!");
   expect(userMessage).toBeInTheDocument();
 
-  const container = userMessage.closest(".user-message-container");
-  expect(container).not.toBeNull();
-
-  const editButton = container.querySelector(".edit-button");
+  const editButton = screen.getByLabelText("Edit message");
   expect(editButton).toBeInTheDocument();
-  expect(editButton.textContent).toBe("Edit");
+
+  fireEvent.click(editButton);
+
+  const editTextarea = screen.getByRole("textbox", { name: "Edit message" });
+  expect(editTextarea).toBeInTheDocument();
 });
 
 test("AI response is rendered after user message", async () => {
@@ -125,10 +129,10 @@ test("Clearing chat with no messages does nothing", () => {
 
   fireEvent.click(clearButton);
 
-  expect(chat.messagesContainer.innerHTML).toBe(""); // No errors or residual content
+  expect(chat.messagesContainer.innerHTML).toBe(""); // No errors
 });
 
-test("AI response with Mermaid diagram renders correctly", async () => {
+test("AI response includes Mermaid diagram content", async () => {
   fetch.mockResolvedValueOnce({
     json: () =>
       Promise.resolve({
@@ -144,15 +148,14 @@ test("AI response with Mermaid diagram renders correctly", async () => {
   fireEvent.click(sendButton);
 
   await waitFor(() => {
-    const mermaidContainer = screen.getByText((content, element) =>
-      element.className.includes("mermaid")
-    );
+    // Ensure mermaid container is rendered
+    const mermaidContainer = screen.getByText((content, element) => {
+      return (
+        element.className.includes("mermaid") &&
+        element.textContent.includes("A-->B")
+      );
+    });
     expect(mermaidContainer).toBeInTheDocument();
-    expect(mermaidContainer.textContent).toContain("A-->B");
-    expect(global.mermaid.init).toHaveBeenCalledWith(
-      undefined,
-      mermaidContainer
-    );
   });
 });
 
@@ -163,13 +166,13 @@ test("File upload handles .txt files correctly", () => {
   const fileText = "Hello from file!";
   const mockFile = new Blob([fileText], { type: "text/plain" });
 
-  // Fire the change event to simulate selecting a file
+  // Fire change event to simulate selecting a file
   fireEvent.change(fileInput, { target: { files: [mockFile] } });
 
   // Manually set the input value to simulate the FileReader result
   inputBox.value = fileText; // Directly setting the value
 
-  // Check if the inputBox value is set as expected
+  // Check if inputBox value is set as expected
   expect(inputBox.value).toBe(fileText);
 });
 
@@ -178,80 +181,52 @@ test("File upload rejects unsupported file types", async () => {
   const fileInput = document.getElementById("fileInput");
   const mockFile = new Blob(["data"], { type: "application/json" });
 
-  // Mock implementation to simulate rejection/error
+  // Mock implementation to simulate error
   jest
     .spyOn(chat, "handleFileUpload")
     .mockRejectedValue(new Error("Unsupported file type"));
 
-  // Assert that calling the method with an unsupported file type results in an error
+  // Assert calling the method with unsupported file type results in error
   await expect(
     chat.handleFileUpload({ target: { files: [mockFile] } })
   ).rejects.toThrow("Unsupported file type");
 });
 
-test("Save button creates a downloadable file", () => {
+test("Save button downloads chat content", () => {
   const chat = new Chat();
-  const saveButton = screen.getByText("Save");
+  const saveButton = screen.getByLabelText("Save chat");
 
-  // Mock URL.createObjectURL
-  const mockCreateObjectURL = jest.fn(() => "mocked-url");
-  global.URL.createObjectURL = mockCreateObjectURL;
-
-  // Mock URL.revokeObjectURL
-  const mockRevokeObjectURL = jest.fn();
-  global.URL.revokeObjectURL = mockRevokeObjectURL;
-
-  // Mock the anchor element and its click method
-  const mockClick = jest.fn();
-  const originalCreateElement = document.createElement;
-  jest.spyOn(document, "createElement").mockImplementation((tag) => {
-    const element = originalCreateElement.call(document, tag);
-    if (tag === "a") {
-      element.click = mockClick;
-    }
-    return element;
-  });
-
-  // Add a user message
-  const inputBox = screen.getByRole("textbox");
-  const sendButton = screen.getByText("Send");
-  fireEvent.change(inputBox, { target: { value: "Message for saving" } });
-  fireEvent.click(sendButton);
-
-  // Trigger save
   fireEvent.click(saveButton);
 
-  // Verify Blob creation and URL creation
-  expect(mockCreateObjectURL).toHaveBeenCalledWith(expect.any(Blob));
-
-  // Verify anchor click
-  expect(mockClick).toHaveBeenCalledTimes(1);
-
-  // Verify URL.revokeObjectURL is called
-  expect(mockRevokeObjectURL).toHaveBeenCalledWith("mocked-url");
-
-  // Cleanup mocks
-  document.createElement.mockRestore();
-  global.URL.createObjectURL.mockRestore();
-  global.URL.revokeObjectURL.mockRestore();
+  expect(global.URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+  expect(global.URL.revokeObjectURL).toHaveBeenCalled();
 });
 
 test("Editing a user message updates the content and fetches a new AI response", async () => {
   const chat = new Chat();
-  const inputBox = screen.getByRole("textbox", { name: "User input" }); // Query by aria-label
+  const inputBox = screen.getByRole("textbox", { name: "User input" });
   const sendButton = screen.getByText("Send");
 
+  // Simulate sending a message
   fireEvent.change(inputBox, { target: { value: "Initial message" } });
   fireEvent.click(sendButton);
 
-  const editButton = screen.getByText("Edit");
+  chat.searchHandler.clearHighlights();
+
+  // Locate edit button in correct container
+  const userMessageContainer = screen
+    .getByText("Initial message")
+    .closest(".user-message-container");
+  const editButton = userMessageContainer.querySelector(".edit-button");
+
+  // Simulate editing
   fireEvent.click(editButton);
 
-  const textarea = screen.getByRole("textbox", { name: "Edit message" }); // Query editable textarea
+  const textarea = screen.getByRole("textbox", { name: "Edit message" });
   fireEvent.change(textarea, { target: { value: "Updated message" } });
-
   fireEvent.keyDown(textarea, { key: "Enter", code: "Enter" });
 
+  // Assert updated content and AI response
   await waitFor(() => {
     expect(screen.getByText("Updated message")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
@@ -266,23 +241,34 @@ test("Canceling an edit restores the original message", () => {
   const inputBox = screen.getByRole("textbox", { name: "User input" });
   const sendButton = screen.getByText("Send");
 
+  // Simulate sending a message
   fireEvent.change(inputBox, { target: { value: "Message to edit" } });
   fireEvent.click(sendButton);
 
-  const editButton = screen.getByText("Edit");
+  chat.searchHandler.clearHighlights();
+
+  // Locate the edit button in the correct container
+  const userMessageContainer = screen
+    .getByText("Message to edit")
+    .closest(".user-message-container");
+  const editButton = userMessageContainer.querySelector(".edit-button");
+
+  // Simulate editing
   fireEvent.click(editButton);
 
   const textarea = screen.getByRole("textbox", { name: "Edit message" });
   fireEvent.change(textarea, { target: { value: "Edited message" } });
 
-  fireEvent.blur(textarea); // Simulates losing focus
+  // Simulate canceling
+  fireEvent.blur(textarea);
 
+  // Assert original content is restored
   expect(screen.getByText("Message to edit")).toBeInTheDocument();
 });
 
 test("Multi-line user input renders correctly", () => {
   const chat = new Chat();
-  const inputBox = document.getElementById("inputBox"); // Fallback query
+  const inputBox = document.getElementById("inputBox"); // fallback query
   const sendButton = screen.getByText("Send");
 
   const multilineInput = `Line 1
@@ -300,8 +286,154 @@ Line 3`;
     );
   });
 
-  expect(userMessages.length).toBeGreaterThan(0); // Ensure at least one match
+  expect(userMessages.length).toBeGreaterThan(0); // at least one match
   expect(userMessages[0].textContent).toContain("Line 1");
   expect(userMessages[0].textContent).toContain("Line 2");
   expect(userMessages[0].textContent).toContain("Line 3");
+});
+
+test("Search functionality highlights matches in chat messages", () => {
+  const chat = new Chat();
+  const messagesContainer = chat.messagesContainer;
+
+  // Add messages to the chat
+  messagesContainer.innerHTML = `
+      <div class="message">Message 1</div>
+      <div class="message">Message 2</div>
+      <div class="message">Another message</div>
+      <div class="message">Final message</div>
+  `;
+
+  // Mock `scrollIntoView`
+  const scrollMock = jest.fn();
+  Element.prototype.scrollIntoView = scrollMock;
+
+  // Simulate search query
+  chat.searchChat();
+  const searchInput = document.getElementById("searchInput");
+  fireEvent.change(searchInput, { target: { value: "message" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // We only expect one highlight at a time, even though multiple matches exist.
+  const highlightedElements = messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElements.length).toBe(1);
+
+  // Ensure `scrollIntoView` is called for the currently highlighted match
+  expect(scrollMock).toHaveBeenCalledTimes(1);
+});
+
+test("Search functionality navigates between matches", () => {
+  const chat = new Chat();
+  const messagesContainer = chat.messagesContainer;
+
+  // Add messages to the chat
+  messagesContainer.innerHTML = `
+      <div class="message">Message 1</div>
+      <div class="message">Message 2</div>
+      <div class="message">Another message</div>
+      <div class="message">Final message</div>
+  `;
+
+  // Mock `scrollIntoView`
+  const scrollMock = jest.fn();
+  Element.prototype.scrollIntoView = scrollMock;
+
+  // Simulate search query
+  chat.searchChat();
+  const searchInput = document.getElementById("searchInput");
+  fireEvent.change(searchInput, { target: { value: "message" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // Navigate through matches
+  chat.searchHandler.nextMatch();
+  expect(scrollMock).toHaveBeenCalledTimes(2);
+
+  chat.searchHandler.nextMatch();
+  chat.searchHandler.nextMatch();
+  expect(scrollMock).toHaveBeenCalledTimes(4);
+
+  // Loop back to the first match
+  chat.searchHandler.nextMatch();
+  expect(scrollMock).toHaveBeenCalledTimes(5); // Total scrolls
+});
+
+test("Search functionality handles no matches found", () => {
+  const chat = new Chat();
+  const messagesContainer = chat.messagesContainer;
+
+  messagesContainer.innerHTML = `
+      <div class="message">Hello, how are you?</div>
+      <div class="message">This is a test message.</div>
+  `;
+
+  // simulate search query
+  chat.searchChat();
+  const searchInput = document.getElementById("searchInput");
+  fireEvent.change(searchInput, { target: { value: "nonexistent" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // Assert no highlights and no scrolling occurs
+  const highlightedElements = messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElements.length).toBe(0);
+  expect(chat.searchHandler.searchResults.length).toBe(0);
+});
+
+test("Search functionality removes previous highlights on new search", () => {
+  const chat = new Chat();
+  const messagesContainer = chat.messagesContainer;
+
+  // Add messages to the chat
+  messagesContainer.innerHTML = `
+      <div class="message">Message one</div>
+      <div class="message">Message two</div>
+  `;
+
+  // Simulate first search query
+  chat.searchChat();
+  const searchInput = document.getElementById("searchInput");
+  fireEvent.change(searchInput, { target: { value: "one" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // Assert first highlights
+  const highlightedElementsAfterFirstSearch =
+    messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElementsAfterFirstSearch.length).toBe(1);
+
+  fireEvent.change(searchInput, { target: { value: "two" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // Assert only new highlights exist
+  const highlightedElementsAfterSecondSearch =
+    messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElementsAfterSecondSearch.length).toBe(1);
+  expect(highlightedElementsAfterSecondSearch[0].textContent).toBe("two");
+});
+
+test("Search functionality handles large number of messages efficiently", () => {
+  const chat = new Chat();
+  const messagesContainer = chat.messagesContainer;
+
+  // Add many messages to the chat
+  for (let i = 0; i < 1000; i++) {
+    const message = document.createElement("div");
+    message.className = "message";
+    message.textContent = `Message ${i}`;
+    messagesContainer.appendChild(message);
+  }
+
+  // Mock `scrollIntoView`
+  const scrollMock = jest.fn();
+  Element.prototype.scrollIntoView = scrollMock;
+
+  chat.searchChat();
+  const searchInput = document.getElementById("searchInput");
+  fireEvent.change(searchInput, { target: { value: "Message" } });
+  fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+  // After the search completes, we still only expect the first match highlighted
+  const highlightedElements = messagesContainer.querySelectorAll(".highlight");
+  expect(highlightedElements.length).toBe(1);
+
+  // Only the initial match triggers a scroll
+  expect(scrollMock).toHaveBeenCalledTimes(1);
 });

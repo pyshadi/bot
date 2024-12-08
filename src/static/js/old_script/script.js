@@ -1,7 +1,7 @@
 // Initialize markdown-it and mermaid globally
 const md = window.markdownit({
   highlight: function (str, lang) {
-    console.log("Highlighting code block:", { str, lang }); // Debug log
+    //console.log("Highlighting code block:", { str, lang }); // Debug log
     if (lang && Prism.languages[lang]) {
       try {
         return Prism.highlight(str, Prism.languages[lang], lang);
@@ -43,8 +43,14 @@ class UserMessage extends Message {
     const messageElement = this.render();
 
     const editButton = document.createElement("button");
+    editButton.setAttribute("aria-label", "Edit message");
     editButton.className = "edit-button";
-    editButton.textContent = "Edit";
+
+    // Create and append edit icon
+    const editIcon = document.createElement("i");
+    editIcon.className = "fas fa-edit"; // Font Awesome edit icon class
+    editButton.appendChild(editIcon);
+
     editButton.onclick = editHandler;
 
     userContainer.appendChild(editButton);
@@ -190,6 +196,7 @@ class Controls {
 
     const saveButton = document.getElementById("saveButton");
     if (saveButton) {
+      saveButton.setAttribute("aria-label", "Save chat");
       saveButton.addEventListener("click", () =>
         FileHandler.saveChat(this.chatApp.messagesContainer)
       );
@@ -200,6 +207,11 @@ class Controls {
       clearButton.addEventListener("click", () =>
         FileHandler.clearChat(this.chatApp.messagesContainer)
       );
+    }
+
+    const searchButton = document.getElementById("searchButton");
+    if (searchButton) {
+      searchButton.addEventListener("click", () => this.chatApp.searchChat());
     }
   }
 }
@@ -216,6 +228,8 @@ class Chat {
     this.rawResponses = []; // Array to store raw AI responses
     this.controls = new Controls(this);
     this.sessionId = this.generateSessionId();
+    this.searchResults = []; // Array to store matching elements
+    this.currentMatchIndex = -1; // Index of the current match
 
     // Initialize controls
     this.controls.addEventListeners();
@@ -314,7 +328,7 @@ class Chat {
     })
       .then((response) => response.json())
       .then((data) => {
-        aiMessageElement.innerHTML = ""; // Clear spinner
+        aiMessageElement.innerHTML = ""; // clear spinner
 
         const rawResponse = data.response; // Save raw response
         this.rawResponses.push(rawResponse);
@@ -339,7 +353,13 @@ class Chat {
           saveContainer.className = "svg-button";
 
           const saveAsSVGButton = document.createElement("button");
-          saveAsSVGButton.textContent = "SVG";
+          saveAsSVGButton.className = "save-svg-button"; // Updated class for styling
+
+          // Add Font Awesome download icon
+          const saveIcon = document.createElement("i");
+          saveIcon.className = "fas fa-download"; // Font Awesome download icon class
+          saveAsSVGButton.appendChild(saveIcon);
+
           saveAsSVGButton.onclick = () =>
             this.saveMermaidAsImage(mermaidContainer, "svg");
           saveContainer.appendChild(saveAsSVGButton);
@@ -350,12 +370,60 @@ class Chat {
 
         aiMessageElement.appendChild(aiMessage.render());
         Prism.highlightAll(); // Apply syntax highlighting
+
+        // Add copy button to code blocks
+        this.addCopyButtons(aiMessageElement);
       })
       .catch((error) => {
         console.error("Error fetching AI response:", error);
         aiMessageElement.innerHTML =
           "There was an error processing your request.";
       });
+  }
+
+  addCopyButtons(parentElement) {
+    const codeBlocks = parentElement.querySelectorAll("pre > code");
+
+    codeBlocks.forEach((codeBlock) => {
+      const copyButton = document.createElement("button");
+      copyButton.className = "copy-button";
+
+      const icon = document.createElement("i");
+      icon.className = "fas fa-copy"; // Font Awesome icon class for copy
+      copyButton.appendChild(icon);
+
+      copyButton.onclick = () => {
+        navigator.clipboard
+          .writeText(codeBlock.textContent)
+          .then(() => {
+            icon.className = "fas fa-check"; // Change icon to a checkmark
+            setTimeout(() => (icon.className = "fas fa-copy"), 2000); // Reset to copy icon
+          })
+          .catch((err) => {
+            console.error("Error copying to clipboard:", err);
+          });
+      };
+
+      const wrapper = codeBlock.closest("pre");
+      wrapper.classList.add("code-block-wrapper");
+
+      // Add relative positioning to the wrapper
+      wrapper.style.position = "relative";
+      wrapper.appendChild(copyButton);
+
+      // Update the position of the button within the wrapper
+      const updateButtonPosition = () => {
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const scrollOffset = wrapper.scrollLeft; // Horizontal scroll offset of the wrapper
+
+        copyButton.style.top = `8px`; // Fixed distance from the top of the wrapper
+        copyButton.style.right = `${8 - scrollOffset}px`; // Adjust for the horizontal scroll
+      };
+
+      // Update the button's position initially and on wrapper scroll
+      wrapper.addEventListener("scroll", updateButtonPosition);
+      updateButtonPosition();
+    });
   }
 
   async saveMermaidAsImage(mermaidElement, format) {
@@ -367,25 +435,38 @@ class Chat {
       return;
     }
 
-    if (format === "svg") {
-      try {
-        // Serialize the SVG to a string and save it
+    try {
+      if (format === "svg") {
+        // Serialize the SVG to a string
         const svgData = new XMLSerializer().serializeToString(svgElement);
+
+        // Create a Blob from the SVG data
         const blob = new Blob([svgData], {
           type: "image/svg+xml;charset=utf-8",
         });
+
+        // Create a temporary link element to trigger the download
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = "diagram.svg";
+        link.style.display = "none"; // Hide the link
+        document.body.appendChild(link); // Append to body
+
+        // Trigger download
         link.click();
+
+        // Clean up URL object and remove temporary link
         URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+
         console.log("SVG successfully saved.");
-      } catch (error) {
-        console.error("Error saving SVG:", error);
-        alert("Failed to save the diagram as SVG. Please try again.");
+      } else {
+        console.error(`Unsupported format: ${format}`);
+        alert("Unsupported format. Currently, only SVG format is supported.");
       }
-    } else {
-      console.error(`Unsupported format: ${format}`);
+    } catch (error) {
+      console.error("Error saving SVG:", error);
+      alert("Failed to save the diagram as SVG. Please try again.");
     }
   }
 
@@ -409,12 +490,12 @@ class Chat {
     console.log("Current text in the message:", currentText);
 
     const textarea = document.createElement("textarea");
-    textarea.setAttribute("aria-label", "Edit message"); // Add label for accessibility
+    textarea.setAttribute("aria-label", "Edit message");
     textarea.value = currentText;
     textarea.className = "editable-textarea";
     textarea.rows = currentText.split("\n").length;
 
-    // Store the original text for restoring on cancel
+    // Store the original text
     textarea.dataset.originalText = currentText;
 
     console.log("Replacing message content with textarea:", textarea);
@@ -429,7 +510,7 @@ class Chat {
     textarea.focus();
     console.log("Textarea focused for editing.");
 
-    // Handle saving on Enter and canceling on blur
+    // Saving on Enter and canceling on blur
     textarea.onkeydown = (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault(); // Prevent new line
@@ -457,7 +538,7 @@ class Chat {
       this.enableEditing(messageContainer);
     });
 
-    messageContainer.innerHTML = ""; // Clear existing content
+    messageContainer.innerHTML = "";
     messageContainer.appendChild(userMessageElement);
 
     this.removeSubsequentMessages(messageContainer);
@@ -472,8 +553,154 @@ class Chat {
     // Fetch updated AI response for the new message
     this.fetchAIResponse(newText, aiMessage);
 
-    // Clear the editing reference
+    // clear editing reference
     this.editingMessageElement = null;
+  }
+
+  searchChat() {
+    let searchInput = document.getElementById("searchInput");
+
+    if (!searchInput) {
+      const buttonGroup = document.querySelector(".button-group");
+
+      // Create the search input dynamically
+      searchInput = document.createElement("input");
+      searchInput.id = "searchInput";
+      searchInput.type = "text";
+      searchInput.placeholder = "Search chat...";
+      searchInput.className = "search-input";
+
+      buttonGroup.appendChild(searchInput);
+
+      searchInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault(); // Prevent form submission
+
+          const query = searchInput.value.trim().toLowerCase();
+
+          // query hasn't changed, cycle to the next match
+          if (query === this.lastSearchQuery) {
+            this.nextMatch();
+          } else {
+            this.lastSearchQuery = query;
+            this.executeSearch(query);
+          }
+        }
+      });
+
+      // blur event clears highlights and reset last query
+      searchInput.addEventListener("blur", () => {
+        this.clearHighlights();
+        this.lastSearchQuery = null;
+        searchInput.remove();
+      });
+
+      searchInput.focus();
+    }
+  }
+
+  executeSearch(searchQuery) {
+    if (!searchQuery) {
+      return; // Do nothing for an empty query
+    }
+
+    const messages = this.messagesContainer.querySelectorAll(".message");
+
+    this.searchResults = [];
+    this.currentMatchIndex = -1;
+
+    messages.forEach((message) => {
+      // If no original content is stored, save it
+      if (!message.dataset.originalContent) {
+        message.dataset.originalContent = message.innerHTML;
+      }
+
+      // Reset content to its original HTML
+      message.innerHTML = message.dataset.originalContent;
+
+      // Highlight only in text nodes
+      const textNodes = [];
+      const findTextNodes = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          textNodes.push(node);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          node.childNodes.forEach(findTextNodes);
+        }
+      };
+      findTextNodes(message);
+
+      textNodes.forEach((node) => {
+        const regex = new RegExp(`(${searchQuery})`, "gi");
+        const text = node.nodeValue;
+        if (regex.test(text)) {
+          const wrapper = document.createElement("span");
+          wrapper.innerHTML = text.replace(
+            regex,
+            `<span class="highlight">$1</span>`
+          );
+          node.parentNode.replaceChild(wrapper, node);
+          this.searchResults.push(wrapper);
+        }
+      });
+    });
+
+    // If matches are found, move to the first match
+    if (this.searchResults.length > 0) {
+      this.currentMatchIndex = 0;
+      this.scrollToMatch();
+    }
+  }
+
+  nextMatch() {
+    if (this.searchResults.length === 0) {
+      return;
+    }
+
+    // Move to the next match, wrapping around to the first
+    this.currentMatchIndex =
+      (this.currentMatchIndex + 1) % this.searchResults.length;
+    this.scrollToMatch();
+  }
+
+  scrollToMatch() {
+    console.log("scrollToMatch called", this.currentMatchIndex);
+    if (
+      this.currentMatchIndex >= 0 &&
+      this.currentMatchIndex < this.searchResults.length
+    ) {
+      const match = this.searchResults[this.currentMatchIndex];
+      match.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
+  highlightText(node, searchQuery) {
+    const regex = new RegExp(`(${searchQuery})`, "gi");
+    const text = node.nodeValue;
+    if (regex.test(text)) {
+      const wrapper = document.createElement("span");
+      wrapper.innerHTML = text.replace(
+        regex,
+        `<span class="highlight">$1</span>`
+      );
+      node.parentNode.replaceChild(wrapper, node);
+      return wrapper; // for further processing
+    }
+    return null;
+  }
+
+  clearHighlights() {
+    const messages = this.messagesContainer.querySelectorAll(".message");
+
+    // Restore original content of each message
+    messages.forEach((message) => {
+      if (message.dataset.originalContent) {
+        message.innerHTML = message.dataset.originalContent;
+      }
+    });
+
+    // Reset search results and state
+    this.searchResults = [];
+    this.currentMatchIndex = -1;
   }
 
   cancelEdit(textarea, messageContainer) {
@@ -481,27 +708,21 @@ class Chat {
 
     // Retrieve the original text
     const originalText = textarea.dataset.originalText;
-    console.log("Original text to restore:", originalText);
-
     const userMessage = new UserMessage(originalText);
     const originalMessageElement = userMessage.renderWithEditButton(() => {
-      console.log("Edit button clicked, re-enabling editing...");
+      console.log("Edit button clicked");
       this.enableEditing(messageContainer);
     });
 
-    messageContainer.innerHTML = ""; // Clear existing content
+    messageContainer.innerHTML = ""; // clear existing content
     messageContainer.appendChild(originalMessageElement);
 
-    this.editingMessageElement = null; // Clear editing reference
+    this.editingMessageElement = null; // clear editing reference
     console.log("Edit canceled and message restored.");
   }
 
   removeSubsequentMessages(messageContainer) {
-    console.log(
-      "Removing subsequent messages for container:",
-      messageContainer
-    );
-
+    console.log("Removing subsequent messages");
     const messagesList = document.getElementById(this.messagesContainerId);
     let currentMessage = messageContainer.nextElementSibling;
 
@@ -512,7 +733,7 @@ class Chat {
       currentMessage = nextMessage;
     }
 
-    console.log("Subsequent messages removed successfully.");
+    console.log("Subsequent messages removed.");
   }
 
   extractMermaidDiagramsAndText(response) {
@@ -543,4 +764,4 @@ const chatApp = new Chat({
   messagesContainerId: "messages",
 });
 
-export default Chat; // for testing
+export default Chat; // testing

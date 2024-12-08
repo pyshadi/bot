@@ -16,7 +16,14 @@
       referrerpolicy="no-referrer"
     />
 
-    <link rel="stylesheet" href="static/styles/style.css" />
+    <link rel="stylesheet" href="static/styles/reset.css" />
+    <link rel="stylesheet" href="static/styles/layout.css" />
+    <link rel="stylesheet" href="static/styles/messages.css" />
+    <link rel="stylesheet" href="static/styles/buttons.css" />
+    <link rel="stylesheet" href="static/styles/diagrams.css" />
+    <link rel="stylesheet" href="static/styles/syntax.css" />
+    <link rel="stylesheet" href="static/styles/spinner.css" />
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
@@ -30,17 +37,31 @@
     <div class="chat-container">
       <!-- Header section -->
       <div class="header">
+        <span class="fas fa-robot"></span>
+        <!-- Llama or related icon -->
         <h1>Chat with llama3.1</h1>
         <div class="button-group">
+          <!-- Search Chat Button -->
+          <button id="searchButton" title="Search Chat">
+            <i class="fas fa-search"></i>
+          </button>
+
+          <button id="loadButton" title="Load Chat">
+            <i class="fas fa-folder-open"></i>
+          </button>
+          <input
+            id="loadChatFileInput"
+            type="file"
+            accept=".txt"
+            style="display: none"
+          />
           <button id="saveButton" title="Save Chat">
             <i class="fas fa-save"></i>
-            <!-- Replace text with icon -->
           </button>
 
           <!-- Clear Chat Button -->
           <button id="clearButton" title="Clear Chat">
             <i class="fas fa-trash"></i>
-            <!-- Replace text with icon -->
           </button>
         </div>
       </div>
@@ -58,11 +79,6 @@
             placeholder="Type your message here..."
           ></textarea>
 
-          <!-- Attach Button -->
-          <button id="attachButton" title="Attach File">
-            <i class="fas fa-paperclip"></i>
-          </button>
-
           <!-- Hidden File Input for Attach Button -->
           <input type="file" id="fileInput" style="display: none" />
 
@@ -70,9 +86,14 @@
           <button id="sendButton" title="Send Message">
             <i class="fas fa-paper-plane"></i>
           </button>
+
+          <!-- Attach Button -->
+          <button id="attachButton" title="Attach File">
+            <i class="fas fa-paperclip"></i>
+          </button>
         </div>
       </div>
     </div>
-    <script type="module" src="static/js/script.js"></script>
+    <script type="module" src="static/js/main.js"></script>
   </body>
 </html>
