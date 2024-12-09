@@ -11,13 +11,17 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from typing import List, Dict
 from pathlib import Path
-import subprocess
 from typing import Optional
 import ast
+import io
+from contextlib import redirect_stdout, redirect_stderr
+import asyncio
+from threading import Lock
 
 
 # Pydantic models
 class CodeExecutionRequest(BaseModel):
+    session_id: str
     blocks: List[str]
 
 class CodeExecutionResponse(BaseModel):
@@ -30,6 +34,7 @@ class CodeAnalysisRequest(BaseModel):
 class CodeAnalysisResponse(BaseModel):
     pure_definition: bool
     executable: bool
+
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -45,6 +50,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Memory store for conversation history
 conversation_histories: Dict[str, List[Message]] = {}
+
+# Execution contexts per session
+execution_contexts: Dict[str, Dict] = {}
+session_namespaces: Dict[str, Dict] = {}
+session_locks: Dict[str, asyncio.Lock] = {}
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -140,29 +150,44 @@ async def chat(request: Request, body: ChatRequest):
             detail="An unexpected error occurred. Please try again later."
         )
 
-
 @app.post("/run-python/", response_model=CodeExecutionResponse)
-async def run_python_code(request: Request, body: CodeExecutionRequest):
-    try:
-        # Combine all blocks into a single script
-        combined_code = "\n\n".join(body.blocks)
-        
-        result = subprocess.run(
-            ["python3", "-c", combined_code],
-            text=True,
-            capture_output=True,
-            timeout=10
-        )
-        
-        return CodeExecutionResponse(
-            output=result.stdout or "",
-            error=result.stderr if result.returncode != 0 else None
-        )
-    except subprocess.TimeoutExpired:
-        return CodeExecutionResponse(output="", error="Code execution timed out.")
-    except Exception as e:
-        return CodeExecutionResponse(output="", error=f"Failed to execute the code: {str(e)}")
-    
+async def run_python_code(body: CodeExecutionRequest):
+    session_id = body.session_id
+    blocks = body.blocks
+
+    # Initialize namespace and lock if not present
+    if session_id not in session_namespaces:
+        session_namespaces[session_id] = {}
+    if session_id not in session_locks:
+        session_locks[session_id] = asyncio.Lock()
+
+    namespace = session_namespaces[session_id]
+    lock = session_locks[session_id]
+
+    output = ""
+    error = ""
+
+    async with lock:
+        for block in blocks:
+            f_stdout = io.StringIO()
+            f_stderr = io.StringIO()
+            try:
+                # Execute the code block within the session's namespace
+                with redirect_stdout(f_stdout), redirect_stderr(f_stderr):
+                    exec(block, namespace)
+                # Accumulate stdout
+                output += f_stdout.getvalue()
+                # Accumulate stderr
+                error += f_stderr.getvalue()
+            except Exception as e:
+                # Accumulate exception message
+                error += str(e)
+                break  # Stop executing further blocks on exception
+
+    # Set error to None if no errors occurred
+    combined_error = error if error else None
+
+    return CodeExecutionResponse(output=output, error=combined_error)
 
 @app.post("/analyze-code-block/", response_model=CodeAnalysisResponse)
 async def analyze_code_block(body: CodeAnalysisRequest):
@@ -172,7 +197,7 @@ async def analyze_code_block(body: CodeAnalysisRequest):
     try:
         code = body.code
         tree = ast.parse(code)
-        
+
         # Check if all top-level nodes are pure definitions (FunctionDef, ClassDef, Import)
         is_pure_definition = all(
             isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.Import, ast.ImportFrom))
@@ -193,3 +218,4 @@ async def analyze_code_block(body: CodeAnalysisRequest):
     except Exception as e:
         logger.error(f"Unexpected error while analyzing code: {e}")
         raise HTTPException(status_code=500, detail="An unexpected error occurred while analyzing the code.")
+

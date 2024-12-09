@@ -33,6 +33,9 @@ export class Chat {
         this.handleFileUpload(event)
       );
     }
+
+    // Track executed definitions
+    this.executedDefinitions = new Set();
   }
 
   generateSessionId() {
@@ -100,7 +103,7 @@ export class Chat {
     this.scrollToBottom();
   }
 
-  fetchAIResponse(userInput, aiMessageElement) {
+  async fetchAIResponse(userInput, aiMessageElement) {
     aiMessageElement.classList.add("ai-message");
 
     // Add a loading spinner while the response is being fetched
@@ -108,208 +111,229 @@ export class Chat {
     spinner.className = "spinner";
     aiMessageElement.appendChild(spinner);
 
-    fetch(this.apiURL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        session_id: this.sessionId,
-        model: this.model,
-        user_input: userInput.trim(),
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        aiMessageElement.innerHTML = ""; // Clear spinner
-
-        const rawResponse = data.response;
-        this.rawResponses.push(rawResponse);
-
-        // Store the raw response for exact reconstruction
-        aiMessageElement
-          .closest(".message-container")
-          .setAttribute("data-raw-text", rawResponse);
-
-        // Process the response to extract diagrams and text
-        const { diagrams, remainingText } =
-          this.diagramHandler.extractMermaidDiagramsAndText(rawResponse);
-
-        // Create the AI message using the processed text
-        const aiMessage = new AiMessage(remainingText);
-
-        // Render diagrams in the AI message container
-        diagrams.forEach((diagram) => {
-          this.diagramHandler.renderMermaidDiagram(aiMessageElement, diagram);
-        });
-
-        // Render the remaining text as part of the AI message
-        aiMessageElement.appendChild(aiMessage.render());
-
-        // Syntax highlighting for code blocks
-        Prism.highlightAll();
-
-        // Add buttons to code blocks within the message
-        this.addCodeButtons(aiMessageElement);
-      })
-      .catch((error) => {
-        console.error("Error fetching AI response:", error);
-        aiMessageElement.innerHTML =
-          "There was an error processing your request.";
+    try {
+      const response = await fetch(this.apiURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          session_id: this.sessionId,
+          model: this.model,
+          user_input: userInput.trim(),
+        }),
       });
+
+      const data = await response.json();
+
+      aiMessageElement.innerHTML = ""; // Clear spinner
+
+      const rawResponse = data.response;
+      this.rawResponses.push(rawResponse);
+
+      // Store the raw response for exact reconstruction
+      aiMessageElement
+        .closest(".message-container")
+        .setAttribute("data-raw-text", rawResponse);
+
+      // Process the response to extract diagrams and text
+      const { diagrams, remainingText } =
+        this.diagramHandler.extractMermaidDiagramsAndText(rawResponse);
+
+      // Create the AI message using the processed text
+      const aiMessage = new AiMessage(remainingText);
+
+      // Render diagrams in the AI message container
+      diagrams.forEach((diagram) => {
+        this.diagramHandler.renderMermaidDiagram(aiMessageElement, diagram);
+      });
+
+      // Render the remaining text as part of the AI message
+      aiMessageElement.appendChild(aiMessage.render());
+
+      // Syntax highlighting for code blocks
+      Prism.highlightAll();
+
+      // Add buttons to code blocks within the message
+      this.addCodeButtons(aiMessageElement);
+    } catch (error) {
+      console.error("Error fetching AI response:", error);
+      aiMessageElement.innerHTML =
+        "There was an error processing your request.";
+    }
   }
+
 
   addCodeButtons(parentElement) {
     const codeBlocks = parentElement.querySelectorAll("pre > code");
-  
-    codeBlocks.forEach(async (codeBlock) => {
+
+    for (const codeBlock of codeBlocks) {
       const wrapper = codeBlock.closest("pre");
-  
-      // Ensure the wrapper has the appropriate class and position
       wrapper.classList.add("code-block-wrapper");
       wrapper.style.position = "relative";
-  
-      // Copy Button
+
+      // **1. Add Copy Button**
       const copyButton = document.createElement("button");
       copyButton.className = "copy-button";
-  
+      copyButton.title = "Copy Code";
+      copyButton.setAttribute("aria-label", "Copy Code");
+
       const copyIcon = document.createElement("i");
       copyIcon.className = "fas fa-copy";
       copyButton.appendChild(copyIcon);
-  
+
       copyButton.onclick = () => {
         navigator.clipboard
           .writeText(codeBlock.textContent)
           .then(() => {
-            copyIcon.className = "fas fa-check"; // Change icon to checkmark
-            setTimeout(() => (copyIcon.className = "fas fa-copy"), 2000); // Revert icon after 2 seconds
+            copyIcon.className = "fas fa-check";
+            setTimeout(() => (copyIcon.className = "fas fa-copy"), 2000);
           })
           .catch((err) => {
             console.error("Error copying to clipboard:", err);
+            alert("Failed to copy code. Please try again.");
           });
       };
-  
+
       wrapper.appendChild(copyButton);
-  
-      // Analyze code block to determine if it's executable
-      const response = await fetch("/analyze-code-block/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: codeBlock.textContent }),
-      });
-  
-      const analysisResult = await response.json();
-  
-      if (analysisResult.executable) {
-        const runButton = document.createElement("button");
-        runButton.className = "run-code-button";
-  
-        const runIcon = document.createElement("i");
-        runIcon.className = "fas fa-play";
-        runButton.appendChild(runIcon);
-  
-        runButton.onclick = async () => {
-          try {
-            // Identify dependent blocks (in the same container) and combine their content
-            const messageContainer = runButton.closest(".message-container");
-            const allCodeBlocks = messageContainer.querySelectorAll("pre > code");
-  
-            let combinedCode = "";
-            allCodeBlocks.forEach((block) => {
-              combinedCode += block.textContent + "\n";
-            });
-  
-            // Toggle between showing code and output
-            const isShowingOutput = codeBlock.classList.contains("showing-output");
-            if (isShowingOutput) {
-              codeBlock.textContent = codeBlock.dataset.originalCode;
-              codeBlock.classList.remove("showing-output");
-              runButton.innerHTML = `<i class="fas fa-play"></i>`; // Change to Run icon
-              Prism.highlightAll(); // Reapply syntax highlighting
-              return;
-            }
-  
-            if (!combinedCode.trim()) {
-              alert("No code to execute.");
-              return;
-            }
-  
-            // Save the original code for toggling back
-            codeBlock.dataset.originalCode = codeBlock.textContent;
-  
-            // Send code to backend for execution
-            const executionResponse = await fetch("/run-python/", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ blocks: combinedCode.split("\n\n") }),
-            });
-  
-            const executionResult = await executionResponse.json();
-  
-            if (executionResult.error) {
-              codeBlock.textContent = `Error: ${executionResult.error}`;
-            } else {
-              codeBlock.textContent = executionResult.output || "No output.";
-            }
-  
-            codeBlock.classList.add("showing-output");
-            runButton.innerHTML = `<i class="fas fa-code"></i>`; // Change to Show Code icon
-          } catch (error) {
-            console.error("Error running code:", error);
-            alert("Failed to execute the code.");
-          }
-        };
-  
-        // Append the Run button to the wrapper
-        wrapper.appendChild(runButton);
+
+      // **2. Analyze Code Block to Determine Executability and Definition Status**
+      this.analyzeAndAddButtons(codeBlock, wrapper);
+    }
+  }
+
+
+async analyzeAndAddButtons(codeBlock, wrapper) {
+  // **A. Analyze the Code Block**
+  const analysisResponse = await fetch("/analyze-code-block/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: codeBlock.textContent }),
+  });
+
+  const analysisResult = await analysisResponse.json();
+
+  if (analysisResult.pure_definition) {
+    // **Definition Blocks: Do Not Show Run Button**
+    // These blocks set up the environment and should execute silently
+    if (!codeBlock.dataset.executed) {
+      // Execute the definition silently
+      await this.executeCodeBlock(codeBlock, wrapper, false);
+    }
+    return; // Exit early, do not add run button
+  }
+
+  if (analysisResult.executable) {
+    // **2. Add Run Button for Executable Blocks**
+    const runButton = document.createElement("button");
+    runButton.className = "run-code-button";
+    runButton.title = "Run Code";
+
+    const runIcon = document.createElement("i");
+    runIcon.className = "fas fa-play"; // Initial icon is 'Run'
+    runButton.appendChild(runIcon);
+
+    // **A. Define Toggle Functionality Separately**
+    runButton.addEventListener("click", async () => {
+      if (runButton.classList.contains("executing")) {
+        // Prevent multiple executions
+        return;
+      }
+
+      if (runIcon.classList.contains("fa-play")) {
+        // **Run Code**
+        await this.executeCodeBlock(codeBlock, wrapper, true, runIcon, runButton);
+      } else if (runIcon.classList.contains("fa-code")) {
+        // **Show Code**
+        this.showOriginalCode(codeBlock, runIcon);
       }
     });
+
+    wrapper.appendChild(runButton);
   }
-  
+}
 
-  async saveMermaidAsImage(mermaidElement, format) {
-    const svgElement = mermaidElement.querySelector("svg");
-
-    if (!svgElement) {
-      console.error("No SVG element found in the Mermaid container.");
-      alert("No diagram found to save.");
-      return;
-    }
-
-    try {
-      if (format === "svg") {
-        // Serialize the SVG to a string
-        const svgData = new XMLSerializer().serializeToString(svgElement);
-
-        // Create a Blob from the SVG data
-        const blob = new Blob([svgData], {
-          type: "image/svg+xml;charset=utf-8",
-        });
-
-        // Create a temporary link element to trigger the download
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "diagram.svg";
-        link.style.display = "none"; // Hide the link
-        document.body.appendChild(link); // Append to body
-
-        // Trigger download
-        link.click();
-
-        // Clean up URL object and remove temporary link
-        URL.revokeObjectURL(link.href);
-        document.body.removeChild(link);
-
-        console.log("SVG successfully saved.");
-      } else {
-        console.error(`Unsupported format: ${format}`);
-        alert("Unsupported format. Currently, only SVG format is supported.");
+async executeCodeBlock(codeBlock, wrapper, showOutput = true, runIcon = null, runButton = null) {
+  try {
+    if (showOutput) {
+      // **a. Store Original Code**
+      if (!codeBlock.dataset.originalCode) {
+        codeBlock.dataset.originalCode = codeBlock.textContent;
       }
-    } catch (error) {
-      console.error("Error saving SVG:", error);
-      alert("Failed to save the diagram as SVG. Please try again.");
+
+      // **b. Execute the Code Block**
+      if (runButton && runIcon) {
+        runButton.classList.add("executing");
+        runIcon.className = "fas fa-spinner fa-spin"; // Show loading spinner
+      }
+
+      const executionResponse = await fetch("/run-python/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: this.sessionId,
+          blocks: [codeBlock.textContent],
+        }),
+      });
+
+      const executionResult = await executionResponse.json();
+
+      // **c. Replace Code with Output or Error**
+      if (executionResult.error) {
+        codeBlock.textContent = `Error:\n${executionResult.error}`;
+      } else {
+        codeBlock.textContent = executionResult.output || "No output.";
+      }
+
+      // **d. Reapply Syntax Highlighting**
+      Prism.highlightElement(codeBlock);
+
+      if (runIcon && runButton) {
+        runIcon.className = "fas fa-code"; // Switch to 'Show Code' icon
+        runButton.classList.remove("executing");
+      }
+    } else {
+      // **Silent Execution for Definitions**
+      const executionResponse = await fetch("/run-python/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: this.sessionId,
+          blocks: [codeBlock.textContent],
+        }),
+      });
+
+      const executionResult = await executionResponse.json();
+
+      if (executionResult.error) {
+        console.error("Error executing definition block:", executionResult.error);
+        // Optionally, display error within the code block
+        codeBlock.textContent = `Error:\n${executionResult.error}`;
+        Prism.highlightElement(codeBlock);
+      } else {
+        // Mark as executed to prevent re-execution
+        codeBlock.dataset.executed = "true";
+      }
     }
+  } catch (error) {
+    console.error("Error executing code block:", error);
+    if (runButton && runIcon) {
+      runButton.classList.remove("executing");
+      runIcon.className = "fas fa-play"; // Reset to 'Run' icon on error
+    }
+    alert("Failed to execute the code.");
   }
+}
+
+showOriginalCode(codeBlock, runIcon) {
+  if (codeBlock.dataset.originalCode) {
+    codeBlock.textContent = codeBlock.dataset.originalCode;
+    Prism.highlightElement(codeBlock); // Reapply syntax highlighting
+    runIcon.className = "fas fa-play"; // Switch back to 'Run' icon
+  }
+}
+
+
 
   createMessageContainer() {
     const container = document.createElement("div");
