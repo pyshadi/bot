@@ -149,8 +149,8 @@ export class Chat {
         // Syntax highlighting for code blocks
         Prism.highlightAll();
 
-        // Add copy buttons to code blocks within the message
-        this.addCopyButtons(aiMessageElement);
+        // Add buttons to code blocks within the message
+        this.addCodeButtons(aiMessageElement);
       })
       .catch((error) => {
         console.error("Error fetching AI response:", error);
@@ -159,24 +159,24 @@ export class Chat {
       });
   }
 
-  addCopyButtons(parentElement) {
+  addCodeButtons(parentElement) {
     const codeBlocks = parentElement.querySelectorAll("pre > code");
-
-    codeBlocks.forEach((codeBlock) => {
+  
+    codeBlocks.forEach(async (codeBlock) => {
       const wrapper = codeBlock.closest("pre");
-
+  
       // Ensure the wrapper has the appropriate class and position
       wrapper.classList.add("code-block-wrapper");
       wrapper.style.position = "relative";
-
+  
       // Copy Button
       const copyButton = document.createElement("button");
       copyButton.className = "copy-button";
-
+  
       const copyIcon = document.createElement("i");
       copyIcon.className = "fas fa-copy";
       copyButton.appendChild(copyIcon);
-
+  
       copyButton.onclick = () => {
         navigator.clipboard
           .writeText(codeBlock.textContent)
@@ -188,34 +188,39 @@ export class Chat {
             console.error("Error copying to clipboard:", err);
           });
       };
-
-      // Always append the Copy button
+  
       wrapper.appendChild(copyButton);
-
-      // Only add Run/Show Code button for Python code blocks
-      if (codeBlock.classList.contains("language-python")) {
+  
+      // Analyze code block to determine if it's executable
+      const response = await fetch("/analyze-code-block/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: codeBlock.textContent }),
+      });
+  
+      const analysisResult = await response.json();
+  
+      if (analysisResult.executable) {
         const runButton = document.createElement("button");
         runButton.className = "run-code-button";
-
+  
         const runIcon = document.createElement("i");
         runIcon.className = "fas fa-play";
         runButton.appendChild(runIcon);
-
+  
         runButton.onclick = async () => {
           try {
+            // Identify dependent blocks (in the same container) and combine their content
             const messageContainer = runButton.closest(".message-container");
-            const allCodeBlocks =
-              messageContainer.querySelectorAll("pre > code");
-
-            // Combine all code blocks in the same message
+            const allCodeBlocks = messageContainer.querySelectorAll("pre > code");
+  
             let combinedCode = "";
             allCodeBlocks.forEach((block) => {
               combinedCode += block.textContent + "\n";
             });
-
+  
             // Toggle between showing code and output
-            const isShowingOutput =
-              codeBlock.classList.contains("showing-output");
+            const isShowingOutput = codeBlock.classList.contains("showing-output");
             if (isShowingOutput) {
               codeBlock.textContent = codeBlock.dataset.originalCode;
               codeBlock.classList.remove("showing-output");
@@ -223,30 +228,30 @@ export class Chat {
               Prism.highlightAll(); // Reapply syntax highlighting
               return;
             }
-
+  
             if (!combinedCode.trim()) {
               alert("No code to execute.");
               return;
             }
-
+  
             // Save the original code for toggling back
             codeBlock.dataset.originalCode = codeBlock.textContent;
-
+  
             // Send code to backend for execution
-            const response = await fetch("/run-python/", {
+            const executionResponse = await fetch("/run-python/", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ code: combinedCode }),
+              body: JSON.stringify({ blocks: combinedCode.split("\n\n") }),
             });
-
-            const result = await response.json();
-
-            if (result.error) {
-              codeBlock.textContent = `Error: ${result.error}`;
+  
+            const executionResult = await executionResponse.json();
+  
+            if (executionResult.error) {
+              codeBlock.textContent = `Error: ${executionResult.error}`;
             } else {
-              codeBlock.textContent = result.output || "No output.";
+              codeBlock.textContent = executionResult.output || "No output.";
             }
-
+  
             codeBlock.classList.add("showing-output");
             runButton.innerHTML = `<i class="fas fa-code"></i>`; // Change to Show Code icon
           } catch (error) {
@@ -254,12 +259,13 @@ export class Chat {
             alert("Failed to execute the code.");
           }
         };
-
+  
         // Append the Run button to the wrapper
         wrapper.appendChild(runButton);
       }
     });
   }
+  
 
   async saveMermaidAsImage(mermaidElement, format) {
     const svgElement = mermaidElement.querySelector("svg");
@@ -462,7 +468,7 @@ export class Chat {
 
         container.appendChild(aiMessage.render());
         Prism.highlightAll();
-        this.addCopyButtons(container);
+        this.addCodeButtons(container);
       }
 
       this.messagesContainer.appendChild(container);

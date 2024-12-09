@@ -13,14 +13,24 @@ from typing import List, Dict
 from pathlib import Path
 import subprocess
 from typing import Optional
+import ast
 
 
+# Pydantic models
 class CodeExecutionRequest(BaseModel):
-    code: str
+    blocks: List[str]
 
 class CodeExecutionResponse(BaseModel):
     output: str
     error: Optional[str] = None
+
+class CodeAnalysisRequest(BaseModel):
+    code: str
+
+class CodeAnalysisResponse(BaseModel):
+    pure_definition: bool
+    executable: bool
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -132,17 +142,18 @@ async def chat(request: Request, body: ChatRequest):
 
 
 @app.post("/run-python/", response_model=CodeExecutionResponse)
-@limiter.limit("10/minute")
 async def run_python_code(request: Request, body: CodeExecutionRequest):
     try:
-        # Using subprocess to execute the code safely
+        # Combine all blocks into a single script
+        combined_code = "\n\n".join(body.blocks)
+        
         result = subprocess.run(
-            ["python3", "-c", body.code],
+            ["python3", "-c", combined_code],
             text=True,
             capture_output=True,
-            timeout=5  # Limit execution time to 5 seconds
+            timeout=10
         )
-
+        
         return CodeExecutionResponse(
             output=result.stdout or "",
             error=result.stderr if result.returncode != 0 else None
@@ -150,24 +161,35 @@ async def run_python_code(request: Request, body: CodeExecutionRequest):
     except subprocess.TimeoutExpired:
         return CodeExecutionResponse(output="", error="Code execution timed out.")
     except Exception as e:
-        logger.error(f"Code execution error: {str(e)}")
-        return CodeExecutionResponse(output="", error="Failed to execute the code.")
+        return CodeExecutionResponse(output="", error=f"Failed to execute the code: {str(e)}")
+    
 
+@app.post("/analyze-code-block/", response_model=CodeAnalysisResponse)
+async def analyze_code_block(body: CodeAnalysisRequest):
+    """
+    Analyze the provided Python code to classify it as a pure definition or executable block.
+    """
     try:
-        # Using subprocess to execute the code safely
-        result = subprocess.run(
-            ["python3", "-c", body.code],
-            text=True,
-            capture_output=True,
-            timeout=5  # Limit execution time to 5 seconds
+        code = body.code
+        tree = ast.parse(code)
+        
+        # Check if all top-level nodes are pure definitions (FunctionDef, ClassDef, Import)
+        is_pure_definition = all(
+            isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.Import, ast.ImportFrom))
+            for node in tree.body
         )
 
-        return CodeExecutionResponse(
-            output=result.stdout,
-            error=result.stderr if result.returncode != 0 else None
+        # Check if there are any executable statements at the top level
+        has_executable = any(
+            isinstance(node, (ast.Expr, ast.Assign, ast.Call, ast.AugAssign, ast.Return))
+            for node in tree.body
         )
-    except subprocess.TimeoutExpired:
-        return CodeExecutionResponse(output="", error="Code execution timed out.")
+
+        return CodeAnalysisResponse(pure_definition=is_pure_definition, executable=has_executable)
+
+    except SyntaxError as e:
+        logger.error(f"SyntaxError while analyzing code: {e}")
+        raise HTTPException(status_code=400, detail="The provided code is invalid.")
     except Exception as e:
-        logger.error(f"Code execution error: {str(e)}")
-        return CodeExecutionResponse(output="", error="Failed to execute the code.")
+        logger.error(f"Unexpected error while analyzing code: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred while analyzing the code.")
