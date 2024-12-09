@@ -3,7 +3,7 @@
 This project is an AI-driven chat application that interacts with the LLaMA language model via a web interface. It provides features for interactive messaging, file handling, diagram rendering, syntax highlighting, and Python code execution. The backend is powered by FastAPI, and the frontend leverages JavaScript modules.
 
 
-![UI](src\assets\screen1.png)
+![UI](src/assets/screen1.png)
 
 
 ## Features
