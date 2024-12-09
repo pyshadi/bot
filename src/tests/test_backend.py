@@ -86,6 +86,62 @@ def test_static_nonexistent(client):
     response = client.get("/static/nonexistent-file.js")
     assert response.status_code == 404  # File not found
 
+# Test /run-python/ endpoint with valid Python code
+def test_run_python_valid_code(client):
+    valid_code_request = {
+        "blocks": ["print('Hello, World!')"]
+    }
+    response = client.post("/run-python/", json=valid_code_request)
+    assert response.status_code == 200
+    assert response.json()["output"] == "Hello, World!\n"
+
+# Test /run-python/ endpoint with invalid Python code
+def test_run_python_invalid_code(client):
+    invalid_code_request = {
+        "blocks": ["print('Hello)"]
+    }
+    response = client.post("/run-python/", json=invalid_code_request)
+    assert response.status_code == 200
+    assert "error" in response.json()
+
+# Test /run-python/ endpoint with execution timeout
+def test_run_python_timeout(client):
+    timeout_code_request = {
+        "blocks": ["while True: pass"]
+    }
+    response = client.post("/run-python/", json=timeout_code_request)
+    assert response.status_code == 200
+    assert response.json()["error"] == "Code execution timed out."
+
+# Test /analyze-code-block/ endpoint with pure definition
+def test_analyze_code_pure_definition(client):
+    pure_definition_request = {
+        "code": "def foo(): pass\nclass Bar: pass"
+    }
+    response = client.post("/analyze-code-block/", json=pure_definition_request)
+    assert response.status_code == 200
+    assert response.json()["pure_definition"] is True
+    assert response.json()["executable"] is False
+
+# Test /analyze-code-block/ endpoint with executable code
+def test_analyze_code_executable(client):
+    executable_code_request = {
+        "code": "x = 42\nprint(x)"
+    }
+    response = client.post("/analyze-code-block/", json=executable_code_request)
+    assert response.status_code == 200
+    assert response.json()["pure_definition"] is False
+    assert response.json()["executable"] is True
+
+# Test /analyze-code-block/ endpoint with invalid syntax
+def test_analyze_code_invalid_syntax(client):
+    invalid_code_request = {
+        "code": "def foo( pass"
+    }
+    response = client.post("/analyze-code-block/", json=invalid_code_request)
+    assert response.status_code == 400
+    assert "detail" in response.json()
+    
 # Test rate limiting
 def test_chat_rate_limit(client):
     time.sleep(60)
