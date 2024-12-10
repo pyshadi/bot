@@ -87,7 +87,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
 
-SUPPORTED_MODELS = ["llama3.1", "llama3"]
+SUPPORTED_MODELS = ["llama3.2", "llama3.2:1b", "llama3.1"]
 MAX_INPUT_LENGTH = 10000
 
 @app.get("/")

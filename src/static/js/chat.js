@@ -8,12 +8,12 @@ import { DiagramHandler } from "./diagram_handler.js";
 export class Chat {
   constructor(config = {}) {
     this.apiURL = config.apiURL || "http://127.0.0.1:8000/chat/";
-    this.model = config.model || "llama3.1";
+    this.model = config.model || "llama3.2";
     this.inputBoxId = config.inputBoxId || "inputBox";
     this.messagesContainerId = config.messagesContainerId || "messages";
     this.messagesContainer = document.getElementById(this.messagesContainerId);
     this.editingMessageElement = null; // Track element being edited
-    this.rawResponses = []; // Array to store raw AI responses
+    this.rawResponses = [];
     this.controls = new Controls(this);
     this.sessionId = this.generateSessionId();
 
