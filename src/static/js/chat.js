@@ -8,7 +8,7 @@ import { DiagramHandler } from "./diagram_handler.js";
 export class Chat {
   constructor(config = {}) {
     this.apiURL = config.apiURL || "http://127.0.0.1:8000/chat/";
-    this.model = config.model || "llama3.2";
+    this.model = config.model || "llama3.2:1b";
     this.inputBoxId = config.inputBoxId || "inputBox";
     this.messagesContainerId = config.messagesContainerId || "messages";
     this.messagesContainer = document.getElementById(this.messagesContainerId);
@@ -34,6 +34,8 @@ export class Chat {
       );
     }
 
+    this.updateChatTitle();
+
     // Track executed definitions
     this.executedDefinitions = new Set();
   }
@@ -47,6 +49,13 @@ export class Chat {
         return v.toString(16);
       }
     );
+  }
+
+  updateChatTitle() {
+    const titleElement = document.getElementById("chatTitle");
+    if (titleElement) {
+      titleElement.textContent = `Chat with ${this.model}`;
+    }
   }
 
   async handleFileUpload(event) {
@@ -163,7 +172,6 @@ export class Chat {
     }
   }
 
-
   addCodeButtons(parentElement) {
     const codeBlocks = parentElement.querySelectorAll("pre > code");
 
@@ -202,138 +210,150 @@ export class Chat {
     }
   }
 
-
-async analyzeAndAddButtons(codeBlock, wrapper) {
-  // **A. Analyze the Code Block**
-  const analysisResponse = await fetch("/analyze-code-block/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code: codeBlock.textContent }),
-  });
-
-  const analysisResult = await analysisResponse.json();
-
-  if (analysisResult.pure_definition) {
-    // **Definition Blocks: Do Not Show Run Button**
-    // These blocks set up the environment and should execute silently
-    if (!codeBlock.dataset.executed) {
-      // Execute the definition silently
-      await this.executeCodeBlock(codeBlock, wrapper, false);
-    }
-    return; // Exit early, do not add run button
-  }
-
-  if (analysisResult.executable) {
-    // **2. Add Run Button for Executable Blocks**
-    const runButton = document.createElement("button");
-    runButton.className = "run-code-button";
-    runButton.title = "Run Code";
-
-    const runIcon = document.createElement("i");
-    runIcon.className = "fas fa-play"; // Initial icon is 'Run'
-    runButton.appendChild(runIcon);
-
-    // **A. Define Toggle Functionality Separately**
-    runButton.addEventListener("click", async () => {
-      if (runButton.classList.contains("executing")) {
-        // Prevent multiple executions
-        return;
-      }
-
-      if (runIcon.classList.contains("fa-play")) {
-        // **Run Code**
-        await this.executeCodeBlock(codeBlock, wrapper, true, runIcon, runButton);
-      } else if (runIcon.classList.contains("fa-code")) {
-        // **Show Code**
-        this.showOriginalCode(codeBlock, runIcon);
-      }
+  async analyzeAndAddButtons(codeBlock, wrapper) {
+    // **A. Analyze the Code Block**
+    const analysisResponse = await fetch("/analyze-code-block/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: codeBlock.textContent }),
     });
 
-    wrapper.appendChild(runButton);
+    const analysisResult = await analysisResponse.json();
+
+    if (analysisResult.pure_definition) {
+      // **Definition Blocks: Do Not Show Run Button**
+      // These blocks set up the environment and should execute silently
+      if (!codeBlock.dataset.executed) {
+        // Execute the definition silently
+        await this.executeCodeBlock(codeBlock, wrapper, false);
+      }
+      return; // Exit early, do not add run button
+    }
+
+    if (analysisResult.executable) {
+      // **2. Add Run Button for Executable Blocks**
+      const runButton = document.createElement("button");
+      runButton.className = "run-code-button";
+      runButton.title = "Run Code";
+
+      const runIcon = document.createElement("i");
+      runIcon.className = "fas fa-play"; // Initial icon is 'Run'
+      runButton.appendChild(runIcon);
+
+      // **A. Define Toggle Functionality Separately**
+      runButton.addEventListener("click", async () => {
+        if (runButton.classList.contains("executing")) {
+          // Prevent multiple executions
+          return;
+        }
+
+        if (runIcon.classList.contains("fa-play")) {
+          // **Run Code**
+          await this.executeCodeBlock(
+            codeBlock,
+            wrapper,
+            true,
+            runIcon,
+            runButton
+          );
+        } else if (runIcon.classList.contains("fa-code")) {
+          // **Show Code**
+          this.showOriginalCode(codeBlock, runIcon);
+        }
+      });
+
+      wrapper.appendChild(runButton);
+    }
   }
-}
 
-async executeCodeBlock(codeBlock, wrapper, showOutput = true, runIcon = null, runButton = null) {
-  try {
-    if (showOutput) {
-      // **a. Store Original Code**
-      if (!codeBlock.dataset.originalCode) {
-        codeBlock.dataset.originalCode = codeBlock.textContent;
-      }
+  async executeCodeBlock(
+    codeBlock,
+    wrapper,
+    showOutput = true,
+    runIcon = null,
+    runButton = null
+  ) {
+    try {
+      if (showOutput) {
+        // **a. Store Original Code**
+        if (!codeBlock.dataset.originalCode) {
+          codeBlock.dataset.originalCode = codeBlock.textContent;
+        }
 
-      // **b. Execute the Code Block**
-      if (runButton && runIcon) {
-        runButton.classList.add("executing");
-        runIcon.className = "fas fa-spinner fa-spin"; // Show loading spinner
-      }
+        // **b. Execute the Code Block**
+        if (runButton && runIcon) {
+          runButton.classList.add("executing");
+          runIcon.className = "fas fa-spinner fa-spin"; // Show loading spinner
+        }
 
-      const executionResponse = await fetch("/run-python/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: this.sessionId,
-          blocks: [codeBlock.textContent],
-        }),
-      });
+        const executionResponse = await fetch("/run-python/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: this.sessionId,
+            blocks: [codeBlock.textContent],
+          }),
+        });
 
-      const executionResult = await executionResponse.json();
+        const executionResult = await executionResponse.json();
 
-      // **c. Replace Code with Output or Error**
-      if (executionResult.error) {
-        codeBlock.textContent = `Error:\n${executionResult.error}`;
-      } else {
-        codeBlock.textContent = executionResult.output || "No output.";
-      }
+        // **c. Replace Code with Output or Error**
+        if (executionResult.error) {
+          codeBlock.textContent = `Error:\n${executionResult.error}`;
+        } else {
+          codeBlock.textContent = executionResult.output || "No output.";
+        }
 
-      // **d. Reapply Syntax Highlighting**
-      Prism.highlightElement(codeBlock);
-
-      if (runIcon && runButton) {
-        runIcon.className = "fas fa-code"; // Switch to 'Show Code' icon
-        runButton.classList.remove("executing");
-      }
-    } else {
-      // **Silent Execution for Definitions**
-      const executionResponse = await fetch("/run-python/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: this.sessionId,
-          blocks: [codeBlock.textContent],
-        }),
-      });
-
-      const executionResult = await executionResponse.json();
-
-      if (executionResult.error) {
-        console.error("Error executing definition block:", executionResult.error);
-        // Optionally, display error within the code block
-        codeBlock.textContent = `Error:\n${executionResult.error}`;
+        // **d. Reapply Syntax Highlighting**
         Prism.highlightElement(codeBlock);
+
+        if (runIcon && runButton) {
+          runIcon.className = "fas fa-code"; // Switch to 'Show Code' icon
+          runButton.classList.remove("executing");
+        }
       } else {
-        // Mark as executed to prevent re-execution
-        codeBlock.dataset.executed = "true";
+        // **Silent Execution for Definitions**
+        const executionResponse = await fetch("/run-python/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: this.sessionId,
+            blocks: [codeBlock.textContent],
+          }),
+        });
+
+        const executionResult = await executionResponse.json();
+
+        if (executionResult.error) {
+          console.error(
+            "Error executing definition block:",
+            executionResult.error
+          );
+          // Optionally, display error within the code block
+          codeBlock.textContent = `Error:\n${executionResult.error}`;
+          Prism.highlightElement(codeBlock);
+        } else {
+          // Mark as executed to prevent re-execution
+          codeBlock.dataset.executed = "true";
+        }
       }
+    } catch (error) {
+      console.error("Error executing code block:", error);
+      if (runButton && runIcon) {
+        runButton.classList.remove("executing");
+        runIcon.className = "fas fa-play"; // Reset to 'Run' icon on error
+      }
+      alert("Failed to execute the code.");
     }
-  } catch (error) {
-    console.error("Error executing code block:", error);
-    if (runButton && runIcon) {
-      runButton.classList.remove("executing");
-      runIcon.className = "fas fa-play"; // Reset to 'Run' icon on error
+  }
+
+  showOriginalCode(codeBlock, runIcon) {
+    if (codeBlock.dataset.originalCode) {
+      codeBlock.textContent = codeBlock.dataset.originalCode;
+      Prism.highlightElement(codeBlock); // Reapply syntax highlighting
+      runIcon.className = "fas fa-play"; // Switch back to 'Run' icon
     }
-    alert("Failed to execute the code.");
   }
-}
-
-showOriginalCode(codeBlock, runIcon) {
-  if (codeBlock.dataset.originalCode) {
-    codeBlock.textContent = codeBlock.dataset.originalCode;
-    Prism.highlightElement(codeBlock); // Reapply syntax highlighting
-    runIcon.className = "fas fa-play"; // Switch back to 'Run' icon
-  }
-}
-
-
 
   createMessageContainer() {
     const container = document.createElement("div");
