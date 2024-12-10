@@ -72,6 +72,14 @@ export class Controls {
       searchButton.addEventListener("click", () => this.chatApp.searchChat());
     }
 
+    const modelSelector = document.getElementById("modelSelector");
+    if (modelSelector) {
+      modelSelector.addEventListener("change", (event) => {
+        const selectedModel = event.target.value;
+        this.chatApp.updateModel(selectedModel);
+      });
+    }
+
     // Add event handlers for Load Button
     const loadButton = document.getElementById("loadButton");
     const loadChatFileInput = document.getElementById("loadChatFileInput");

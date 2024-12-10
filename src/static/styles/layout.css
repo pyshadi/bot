@@ -96,3 +96,19 @@
   border: 2px dashed #4a90e2;
   background: #f0f8ff;
 }
+
+.model-selector {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px;
+  font-size: 14px;
+  margin-left: 10px;
+  color: #000000;
+  cursor: pointer;
+}
+
+.model-selector:hover {
+  border-color: #38615c;
+  background-color: #e8f1f1;
+}

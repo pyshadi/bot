@@ -39,8 +39,14 @@
       <div class="header">
         <span class="fas fa-robot"></span>
         <!-- Llama or related icon -->
-        <h1 id="chatTitle">Chat with llama</h1>
+        <select id="modelSelector" class="model-selector">
+          <option value="llama3.2">llama3.2</option>
+          <option value="llama3.2:1b">llama3.2:1b</option>
+          <option value="llama3.1">llama3.1</option>
+        </select>
         <div class="button-group">
+
+
           <!-- Search Chat Button -->
           <button id="searchButton" title="Search Chat">
             <i class="fas fa-search"></i>

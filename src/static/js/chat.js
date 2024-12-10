@@ -34,7 +34,10 @@ export class Chat {
       );
     }
 
-    this.updateChatTitle();
+    const modelSelector = document.getElementById("modelSelector");
+    if (modelSelector) {
+      modelSelector.value = this.model; // Set the default selected model
+    }
 
     // Track executed definitions
     this.executedDefinitions = new Set();
@@ -51,11 +54,9 @@ export class Chat {
     );
   }
 
-  updateChatTitle() {
-    const titleElement = document.getElementById("chatTitle");
-    if (titleElement) {
-      titleElement.textContent = `Chat with ${this.model}`;
-    }
+  updateModel(newModel) {
+    this.model = newModel;
+    console.log(`Model switched to: ${this.model}`);
   }
 
   async handleFileUpload(event) {
